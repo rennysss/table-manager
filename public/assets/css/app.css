@@ -1,0 +1,1650 @@
+/**
+ * Estilos globales — inspirados en Apple Human Interface Guidelines
+ * Tipografía sistema, espaciado generoso, bordes redondeados, contraste AA.
+ */
+
+:root {
+    --app-bg: #121212;
+    --app-surface: #1e1e1e;
+    --app-surface-2: #2c2c2e;
+    --app-text: #f5f5f7;
+    --app-text-secondary: #98989d;
+    --app-primary: #1a1a1a;
+    --app-primary-hover: #2c2c2e;
+    --app-border: rgba(255, 255, 255, 0.08);
+    --app-radius: 12px;
+    --app-radius-sm: 8px;
+    --app-shadow: 0 2px 12px rgba(0, 0, 0, 0.35);
+    --app-font: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", system-ui, sans-serif;
+}
+
+* { box-sizing: border-box; }
+
+/* Evitar que imágenes/SVG sin dimensiones desborden el layout */
+img {
+    max-width: 100%;
+    height: auto;
+    vertical-align: middle;
+}
+
+svg {
+    display: inline-block;
+    vertical-align: middle;
+    flex-shrink: 0;
+}
+
+body.app-body {
+    font-family: var(--app-font);
+    background: var(--app-bg);
+    color: var(--app-text);
+    -webkit-font-smoothing: antialiased;
+    margin: 0;
+}
+
+/* ─── Shell + Sidebar (tema oscuro tipo Color Admin) ─── */
+:root {
+    --sidebar-width: 250px;
+    --sidebar-collapsed-width: 64px;
+    --sidebar-bg: #1a1a1a;
+    --sidebar-bg-hover: #252525;
+    --sidebar-bg-active: rgba(0, 172, 172, 0.12);
+    --sidebar-text: rgba(255, 255, 255, 0.65);
+    --sidebar-text-active: #ffffff;
+    --sidebar-accent: #00acac;
+    --sidebar-border: rgba(255, 255, 255, 0.06);
+    --topbar-height: 54px;
+    --topbar-bg: #121212;
+}
+
+.app-shell {
+    display: flex;
+    min-height: 100vh;
+    width: 100%;
+    overflow-x: hidden;
+    background: var(--app-bg);
+}
+
+.app-sidebar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    z-index: 1040;
+    width: var(--sidebar-width);
+    height: 100vh;
+    background: var(--sidebar-bg);
+    color: var(--sidebar-text);
+    display: flex;
+    flex-direction: column;
+    transition: width 0.25s ease, transform 0.25s ease;
+    overflow: hidden;
+    border-right: 1px solid var(--sidebar-border);
+}
+
+.sidebar-brand {
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+    padding: 1.25rem 1rem 0.75rem 1.25rem;
+    flex-shrink: 0;
+}
+
+.sidebar-logo {
+    width: auto !important;
+    height: 28px !important;
+    max-width: 180px !important;
+    max-height: 28px !important;
+    object-fit: contain;
+    object-position: left center;
+}
+
+/* Tarjeta de usuario en la parte superior del sidebar */
+.sidebar-user {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    margin: 0.875rem;
+    padding: 0.75rem;
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid var(--sidebar-border);
+    border-radius: 10px;
+    flex-shrink: 0;
+    cursor: default;
+}
+
+.sidebar-user-avatar {
+    width: 38px;
+    height: 38px;
+    min-width: 38px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #3a3a3c, #2c2c2e);
+    color: #fff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 600;
+    font-size: 0.9375rem;
+    border: 2px solid rgba(255, 255, 255, 0.08);
+}
+
+.sidebar-user-info {
+    overflow: hidden;
+    min-width: 0;
+    flex: 1;
+}
+
+.sidebar-user-name {
+    display: block;
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: #fff;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    line-height: 1.3;
+}
+
+.sidebar-user-role {
+    display: block;
+    font-size: 0.75rem;
+    color: rgba(255, 255, 255, 0.4);
+    text-transform: capitalize;
+    line-height: 1.3;
+}
+
+.sidebar-user-chevron {
+    color: rgba(255, 255, 255, 0.25);
+    display: flex;
+    align-items: center;
+    flex-shrink: 0;
+}
+
+/* Navegación */
+.sidebar-nav {
+    flex: 1;
+    overflow-y: auto;
+    overflow-x: hidden;
+    padding: 0.25rem 0 1rem;
+}
+
+.sidebar-section-title {
+    font-size: 0.6875rem;
+    font-weight: 600;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: rgba(255, 255, 255, 0.32);
+    padding: 1rem 1.25rem 0.5rem;
+    margin: 0;
+}
+
+.sidebar-section-title--secondary {
+    padding-top: 0.75rem;
+}
+
+.sidebar-menu {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+}
+
+.sidebar-menu-link {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.625rem 1.25rem;
+    margin: 0;
+    color: var(--sidebar-text);
+    text-decoration: none !important;
+    border-radius: 0;
+    border-left: 3px solid transparent;
+    transition: background 0.15s, color 0.15s, border-color 0.15s;
+    white-space: nowrap;
+    font-size: 0.875rem;
+    min-height: 42px;
+}
+
+.sidebar-menu-link:hover {
+    background: var(--sidebar-bg-hover);
+    color: var(--sidebar-text-active);
+}
+
+.sidebar-menu-link.active {
+    background: var(--sidebar-bg-active);
+    color: var(--sidebar-text-active);
+    border-left-color: var(--sidebar-accent);
+}
+
+.sidebar-menu-icon {
+    width: 20px;
+    height: 20px;
+    min-width: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0.85;
+}
+
+.sidebar-menu-link.active .sidebar-menu-icon {
+    opacity: 1;
+    color: var(--sidebar-accent);
+}
+
+.sidebar-menu-icon svg {
+    width: 18px;
+    height: 18px;
+}
+
+.sidebar-menu-label {
+    font-size: 0.875rem;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+/* Submenú — grupos como Configuraciones */
+.sidebar-menu-item--group {
+    margin: 0;
+}
+
+.sidebar-menu-toggle {
+    width: 100%;
+    border: none;
+    background: transparent;
+    cursor: pointer;
+    font-family: inherit;
+}
+
+.sidebar-menu-chevron {
+    margin-left: auto;
+    display: flex;
+    align-items: center;
+    opacity: 0.45;
+    transition: transform 0.2s ease;
+    flex-shrink: 0;
+}
+
+.sidebar-menu-item--group.is-open .sidebar-menu-chevron {
+    transform: rotate(90deg);
+}
+
+.sidebar-menu-item--group.has-active > .sidebar-menu-toggle {
+    color: var(--sidebar-text-active);
+}
+
+.sidebar-submenu {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: none;
+    overflow: hidden;
+}
+
+.sidebar-menu-item--group.is-open > .sidebar-submenu {
+    display: block;
+}
+
+.sidebar-submenu-link {
+    padding-left: 3.25rem !important;
+    min-height: 38px;
+    font-size: 0.8125rem;
+}
+
+.sidebar-submenu-link .sidebar-menu-icon svg {
+    width: 16px;
+    height: 16px;
+}
+
+/* Footer — botón colapsar */
+.sidebar-footer {
+    border-top: 1px solid var(--sidebar-border);
+    padding: 0.5rem 0;
+    flex-shrink: 0;
+}
+
+.sidebar-collapse-btn {
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+    width: 100%;
+    padding: 0.75rem 1.25rem;
+    background: transparent;
+    border: none;
+    color: rgba(255, 255, 255, 0.35);
+    cursor: pointer;
+    transition: color 0.15s;
+}
+
+.sidebar-collapse-btn:hover {
+    color: rgba(255, 255, 255, 0.7);
+}
+
+.sidebar-collapse-icon--collapsed {
+    display: none;
+}
+
+.sidebar-collapsed .sidebar-collapse-icon--expanded {
+    display: none;
+}
+
+.sidebar-collapsed .sidebar-collapse-icon--collapsed {
+    display: inline-flex;
+}
+
+/* Iconos SVG del sidebar */
+.app-sidebar svg {
+    width: 18px;
+    height: 18px;
+    max-width: 18px;
+    max-height: 18px;
+}
+
+.app-sidebar .sidebar-collapse-btn svg {
+    width: 18px;
+    height: 18px;
+    max-width: 18px;
+    max-height: 18px;
+}
+
+/* Sidebar colapsado */
+.sidebar-collapsed .app-sidebar {
+    width: var(--sidebar-collapsed-width);
+}
+
+.sidebar-collapsed .sidebar-user-info,
+.sidebar-collapsed .sidebar-user-chevron,
+.sidebar-collapsed .sidebar-section-title,
+.sidebar-collapsed .sidebar-menu-label,
+.sidebar-collapsed .sidebar-menu-chevron,
+.sidebar-collapsed .sidebar-submenu {
+    opacity: 0;
+    width: 0;
+    overflow: hidden;
+    padding: 0;
+    margin: 0;
+}
+
+.sidebar-collapsed .sidebar-brand {
+    justify-content: flex-start;
+    padding: 1rem 0.5rem 1rem 0.75rem;
+}
+
+.sidebar-collapsed .sidebar-logo {
+    width: 36px !important;
+    height: 28px !important;
+    max-width: 36px !important;
+    max-height: 28px !important;
+    object-fit: cover;
+    object-position: left center;
+}
+
+.sidebar-collapsed .sidebar-user {
+    justify-content: center;
+    margin: 0.75rem 0.5rem;
+    padding: 0.5rem;
+}
+
+.sidebar-collapsed .sidebar-menu-link {
+    justify-content: center;
+    padding-left: 0;
+    padding-right: 0;
+    border-left: none;
+}
+
+.sidebar-collapsed .sidebar-menu-link.active {
+    border-left: none;
+    background: var(--sidebar-bg-active);
+}
+
+/* Contenido principal */
+.app-content-wrap {
+    flex: 1;
+    margin-left: var(--sidebar-width);
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
+    transition: margin-left 0.25s ease;
+    background: var(--app-bg);
+    color: var(--app-text);
+}
+
+.sidebar-collapsed .app-content-wrap {
+    margin-left: var(--sidebar-collapsed-width);
+}
+
+/* Topbar oscuro */
+.app-topbar {
+    position: sticky;
+    top: 0;
+    z-index: 1030;
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    height: var(--topbar-height);
+    padding: 0 1.5rem;
+    background: var(--topbar-bg);
+    border-bottom: 1px solid var(--sidebar-border);
+}
+
+.app-topbar-brand {
+    display: flex;
+    align-items: center;
+    flex-shrink: 0;
+}
+
+.app-topbar-logo {
+    width: 48px !important;
+    height: 40px !important;
+    max-width: 48px !important;
+    max-height: 40px !important;
+    object-fit: contain;
+    filter: brightness(0) invert(1);
+}
+
+.app-topbar-logo-text {
+    font-size: 1.125rem;
+    font-weight: 700;
+    color: #fff;
+    letter-spacing: -0.02em;
+}
+
+.app-topbar-title {
+    font-size: 0.9375rem;
+    font-weight: 500;
+    margin: 0;
+    flex: 1;
+    letter-spacing: -0.01em;
+    color: rgba(255, 255, 255, 0.55);
+}
+
+.app-topbar-menu-btn {
+    background: none;
+    border: none;
+    padding: 0.5rem;
+    color: rgba(255, 255, 255, 0.75);
+    cursor: pointer;
+    border-radius: 8px;
+}
+
+.app-topbar-menu-btn:hover {
+    background: rgba(255, 255, 255, 0.06);
+}
+
+.app-topbar-actions {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    margin-left: auto;
+}
+
+.app-topbar-icon-btn {
+    background: none;
+    border: none;
+    padding: 0.5rem;
+    color: rgba(255, 255, 255, 0.55);
+    cursor: pointer;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.app-topbar-icon-btn:hover:not(:disabled) {
+    background: rgba(255, 255, 255, 0.06);
+    color: #fff;
+}
+
+.app-topbar-icon-btn:disabled {
+    opacity: 0.45;
+    cursor: default;
+}
+
+.app-topbar-user-wrap {
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap: 0.15rem;
+}
+
+.app-topbar-user {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.25rem 0.25rem 0.25rem 0.25rem;
+    border-radius: 8px;
+}
+
+.app-topbar-user-toggle {
+    background: none;
+    border: none;
+    padding: 0.35rem;
+    color: rgba(255, 255, 255, 0.45);
+    cursor: pointer;
+    border-radius: 6px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    line-height: 0;
+}
+
+.app-topbar-user-toggle:hover,
+.app-topbar-user-wrap.is-open .app-topbar-user-toggle {
+    background: rgba(255, 255, 255, 0.08);
+    color: rgba(255, 255, 255, 0.85);
+}
+
+.app-topbar-user-wrap.is-open .app-topbar-user-toggle svg {
+    transform: rotate(180deg);
+}
+
+.app-topbar-user-toggle svg {
+    transition: transform 0.15s ease;
+}
+
+.app-topbar-dropdown {
+    position: absolute;
+    top: calc(100% + 8px);
+    right: 0;
+    min-width: 160px;
+    background: #2c2c2e;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 10px;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.45);
+    padding: 0.35rem 0;
+    z-index: 1050;
+}
+
+.app-topbar-dropdown-item {
+    display: block;
+    padding: 0.625rem 1rem;
+    color: rgba(255, 255, 255, 0.85);
+    text-decoration: none !important;
+    font-size: 0.875rem;
+    transition: background 0.12s;
+}
+
+.app-topbar-dropdown-item:hover {
+    background: rgba(255, 255, 255, 0.08);
+    color: #fff;
+}
+
+.app-topbar-dropdown-item + .app-topbar-dropdown-item {
+    border-top: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.app-topbar-user-avatar {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #3a3a3c, #2c2c2e);
+    color: #fff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.8125rem;
+    font-weight: 600;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.app-topbar-user-name {
+    font-size: 0.8125rem;
+    font-weight: 500;
+    color: rgba(255, 255, 255, 0.85);
+}
+
+.app-topbar-user-chevron {
+    color: rgba(255, 255, 255, 0.35);
+}
+
+.app-perfil-avatar {
+    width: 56px;
+    height: 56px;
+    border-radius: 50%;
+    background: #2c2c2e;
+    color: #fff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.25rem;
+    font-weight: 600;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.app-perfil-dl dt {
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--app-text-secondary);
+    margin-top: 1rem;
+}
+
+.app-perfil-dl dt:first-child {
+    margin-top: 0;
+}
+
+.app-perfil-dl dd {
+    margin-bottom: 0;
+    color: var(--app-text);
+}
+
+.text-muted {
+    color: var(--app-text-secondary) !important;
+}
+
+.app-topbar svg {
+    width: 20px;
+    height: 20px;
+    max-width: 20px;
+    max-height: 20px;
+    flex-shrink: 0;
+}
+
+.sidebar-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.55);
+    z-index: 1035;
+}
+
+/* Móvil */
+@media (max-width: 991.98px) {
+    .app-sidebar {
+        transform: translateX(-100%);
+        width: var(--sidebar-width) !important;
+    }
+
+    .sidebar-mobile-open .app-sidebar {
+        transform: translateX(0);
+    }
+
+    .sidebar-mobile-open .sidebar-overlay {
+        display: block;
+    }
+
+    .app-content-wrap {
+        margin-left: 0 !important;
+    }
+
+    .sidebar-collapsed .sidebar-user-info,
+    .sidebar-collapsed .sidebar-user-chevron,
+    .sidebar-collapsed .sidebar-section-title,
+    .sidebar-collapsed .sidebar-menu-label,
+    .sidebar-collapsed .sidebar-menu-chevron,
+    .sidebar-collapsed .sidebar-submenu {
+        opacity: 1;
+        width: auto;
+        overflow: visible;
+        padding: inherit;
+        margin: inherit;
+    }
+}
+
+.font-weight-semibold { font-weight: 600; }
+
+.app-main {
+    flex: 1;
+    padding: 0 0 2rem;
+    min-height: calc(100vh - var(--topbar-height));
+}
+
+.app-card {
+    border: 1px solid var(--app-border);
+    border-radius: var(--app-radius);
+    box-shadow: none;
+    background: var(--app-surface);
+    overflow: hidden;
+}
+
+.app-card .card-header {
+    background: transparent;
+    border-bottom: 1px solid var(--app-border);
+    font-weight: 600;
+    font-size: 0.9375rem;
+    color: var(--app-text);
+}
+
+.app-card .card-body {
+    background: var(--app-surface);
+    color: var(--app-text);
+}
+
+/* Floorplan Layouts — tarjetas estilo SevenRooms */
+.fp-layout-intro {
+    max-width: 640px;
+    font-size: 0.8125rem;
+    line-height: 1.5;
+}
+
+.fp-layout-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+    gap: 1rem;
+}
+
+.fp-layout-card {
+    padding: 0;
+    overflow: visible;
+}
+
+.fp-layout-card-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 0.5rem;
+    padding: 1rem 1.25rem;
+    border-bottom: 1px solid var(--app-border);
+}
+
+.fp-layout-eyebrow {
+    display: block;
+    font-size: 0.6875rem;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--app-text-secondary);
+    margin-bottom: 0.35rem;
+}
+
+.fp-layout-name {
+    font-size: 1.0625rem;
+    font-weight: 700;
+    margin: 0;
+    color: var(--app-text);
+}
+
+.fp-layout-edited {
+    font-size: 0.75rem;
+    color: var(--app-text-secondary);
+    margin: 0.25rem 0 0;
+}
+
+.fp-layout-kebab {
+    background: transparent;
+    border: none;
+    color: var(--app-text-secondary);
+    font-size: 1.1rem;
+    line-height: 1;
+    padding: 0.25rem 0.5rem;
+}
+
+.fp-layout-kebab:hover {
+    color: var(--app-text);
+    background: var(--app-surface-2);
+}
+
+.fp-layout-card-body {
+    padding: 1rem 1.25rem;
+    border-bottom: 1px solid var(--app-border);
+}
+
+.fp-layout-stats {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+}
+
+.fp-layout-stats li {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    font-size: 0.875rem;
+    color: var(--app-text-secondary);
+    padding: 0.3rem 0;
+}
+
+.fp-layout-stats li strong {
+    margin-left: auto;
+    color: var(--app-text);
+    font-weight: 600;
+}
+
+.fp-layout-stats svg {
+    flex-shrink: 0;
+    color: var(--app-text-secondary);
+}
+
+.fp-layout-card-foot {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.85rem 1.25rem;
+}
+
+.fp-layout-tag {
+    display: inline-block;
+    padding: 0.2rem 0.6rem;
+    border: 1px solid var(--app-border);
+    border-radius: 999px;
+    font-size: 0.75rem;
+    color: var(--app-text-secondary);
+}
+
+.app-breadcrumb .breadcrumb-item,
+.app-breadcrumb .breadcrumb-item a {
+    font-size: 0.8125rem;
+    color: var(--app-text-secondary);
+}
+
+.app-breadcrumb .breadcrumb-item.active {
+    color: var(--app-text);
+}
+
+/* Selector de varios ambientes (modal Nuevo FloorPlan) */
+.fp-amb-picker {
+    display: flex;
+    gap: 0.5rem;
+}
+
+.fp-amb-picker .btn {
+    white-space: nowrap;
+}
+
+.fp-amb-chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4rem;
+    margin-top: 0.6rem;
+    min-height: 0;
+}
+
+.fp-amb-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    padding: 0.25rem 0.35rem 0.25rem 0.7rem;
+    background: var(--app-surface-2);
+    border: 1px solid var(--app-border);
+    border-radius: 999px;
+    font-size: 0.8125rem;
+    color: var(--app-text);
+}
+
+.fp-amb-chip-x {
+    background: transparent;
+    border: none;
+    color: var(--app-text-secondary);
+    font-size: 1rem;
+    line-height: 1;
+    padding: 0 0.25rem;
+    cursor: pointer;
+    border-radius: 50%;
+}
+
+.fp-amb-chip-x:hover {
+    color: #fff;
+    background: rgba(255, 255, 255, 0.12);
+}
+
+/* Botones — tema oscuro negro/gris */
+.btn-primary {
+    background: #1a1a1a;
+    border-color: #3a3a3c;
+    color: #fff;
+    border-radius: var(--app-radius-sm);
+    font-weight: 500;
+    min-height: 44px;
+    padding: 0.5rem 1.25rem;
+}
+
+.btn-primary:hover,
+.btn-primary:focus {
+    background: #2c2c2e;
+    border-color: #48484a;
+    color: #fff;
+}
+
+.btn-secondary {
+    background: #2c2c2e;
+    border-color: #3a3a3c;
+    color: #f5f5f7;
+}
+
+.btn-secondary:hover,
+.btn-secondary:focus {
+    background: #3a3a3c;
+    border-color: #48484a;
+    color: #fff;
+}
+
+.btn-outline-secondary {
+    color: #f5f5f7;
+    border-color: #48484a;
+    background: transparent;
+}
+
+.btn-outline-secondary:hover,
+.btn-outline-secondary:focus {
+    background: #2c2c2e;
+    border-color: #636366;
+    color: #fff;
+}
+
+.btn-outline-primary {
+    color: #f5f5f7;
+    border-color: #48484a;
+    background: transparent;
+}
+
+.btn-outline-primary:hover,
+.btn-outline-primary:focus {
+    background: #2c2c2e;
+    border-color: #636366;
+    color: #fff;
+}
+
+.btn-outline-dark {
+    color: #f5f5f7;
+    border-color: #48484a;
+}
+
+.btn-light {
+    background: #2c2c2e;
+    border-color: #3a3a3c;
+    color: #f5f5f7;
+}
+
+.btn-link {
+    color: #98989d;
+}
+
+.btn-link:hover {
+    color: #f5f5f7;
+}
+
+.app-btn-icon {
+    width: 44px;
+    min-width: 44px;
+    height: 44px;
+    padding: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.625rem;
+    font-weight: 300;
+    line-height: 1;
+}
+
+/* Menú kebab en tablas */
+.app-btn-kebab {
+    min-width: 36px;
+    padding: 0.25rem 0.5rem;
+    font-size: 1.125rem;
+    line-height: 1;
+    letter-spacing: 0.05em;
+}
+
+.app-table-dropdown .dropdown-menu {
+    min-width: 10rem;
+}
+
+/* Evita que el menú de acciones quede recortado (y genere scroll) dentro de la tabla */
+.app-table-overflow-visible {
+    overflow: visible;
+}
+
+/* Permite que el menú de acciones flote por encima del data table sin recortarse */
+.app-card--menu-visible {
+    overflow: visible;
+}
+
+.app-dropdown-menu {
+    background: #1e1e1e;
+    border: 1px solid var(--sidebar-border);
+    border-radius: var(--app-radius-sm);
+    padding: 0.35rem 0;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.45);
+}
+
+.app-dropdown-menu .dropdown-item {
+    color: rgba(255, 255, 255, 0.85);
+    font-size: 0.875rem;
+    padding: 0.5rem 1rem;
+    background: transparent;
+    border: none;
+    width: 100%;
+    text-align: left;
+    cursor: pointer;
+}
+
+.app-dropdown-menu .dropdown-item:hover,
+.app-dropdown-menu .dropdown-item:focus {
+    background: var(--sidebar-bg-hover);
+    color: #fff;
+}
+
+.app-modal-edit-panel {
+    background: rgba(255, 255, 255, 0.04);
+    border-radius: var(--app-radius-sm);
+    border: 1px solid var(--sidebar-border);
+}
+
+.form-control {
+    border-radius: var(--app-radius-sm);
+    border-color: var(--app-border);
+    min-height: 44px;
+    background: var(--app-surface-2);
+    color: var(--app-text);
+}
+
+.form-control:focus {
+    background: var(--app-surface-2);
+    color: var(--app-text);
+    border-color: #636366;
+    box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.08);
+}
+
+.form-control::placeholder {
+    color: #636366;
+}
+
+/* Mantiene el modo oscuro en inputs de solo lectura/deshabilitados
+   (Bootstrap les pone fondo gris claro por defecto) */
+.form-control[readonly],
+.form-control:disabled {
+    background: var(--app-surface-2);
+    color: var(--app-text);
+    opacity: 1;
+}
+
+.form-control[readonly] {
+    color: #aeaeb2;
+    cursor: default;
+}
+
+.table {
+    color: var(--app-text);
+}
+
+.table thead th {
+    border-top: none;
+    border-bottom-color: var(--app-border);
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--app-text-secondary);
+    font-weight: 600;
+    background: transparent;
+}
+
+.table td,
+.table th {
+    border-top-color: var(--app-border);
+    vertical-align: middle;
+}
+
+.table-hover tbody tr:hover {
+    background: rgba(255, 255, 255, 0.04);
+    color: var(--app-text);
+}
+
+.alert-success {
+    background: rgba(52, 199, 89, 0.12);
+    border-color: rgba(52, 199, 89, 0.25);
+    color: #6ee7a0;
+}
+
+.alert-danger {
+    background: rgba(255, 59, 48, 0.12);
+    border-color: rgba(255, 59, 48, 0.25);
+    color: #ff8a84;
+}
+
+/* Modales — tema oscuro */
+.app-modal-content {
+    background: #1e1e1e;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    color: #f5f5f7;
+}
+
+.app-modal-header {
+    border-bottom-color: rgba(255, 255, 255, 0.08);
+}
+
+.app-modal-header .modal-title {
+    color: #fff;
+    font-size: 1rem;
+    font-weight: 600;
+}
+
+.app-modal-close {
+    color: #98989d;
+    text-shadow: none;
+    opacity: 1;
+}
+
+.app-modal-close:hover {
+    color: #fff;
+}
+
+.app-modal-body {
+    background: #1e1e1e;
+    padding-bottom: 0;
+}
+
+.app-modal-form-footer {
+    display: flex;
+    justify-content: flex-end;
+    align-items: center;
+    margin: 1.25rem -1rem 0;
+    padding: 1rem 1rem 0.25rem;
+    border-top: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.app-modal-edit-panel {
+    background: #2c2c2e;
+    border-radius: 8px;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.modal-backdrop.show {
+    opacity: 0.65;
+}
+
+/* Miniaturas en tablas y formularios */
+.img-thumb {
+    display: inline-block;
+    width: auto;
+    height: 40px;
+    max-width: 80px;
+    max-height: 40px;
+    object-fit: contain;
+}
+
+.img-preview {
+    display: block;
+    width: auto;
+    height: 80px;
+    max-width: 160px;
+    max-height: 80px;
+    object-fit: contain;
+}
+
+/* Login — imagen de fondo + panel negro 20% */
+.login-page {
+    min-height: 100vh;
+    min-height: 100dvh;
+    display: flex;
+    flex-direction: row;
+    margin: 0;
+    font-family: var(--app-font);
+    background-color: #0c131b;
+    background-image: url("../img/1R-fondo.png");
+    background-position: center center;
+    background-size: cover;
+    background-repeat: no-repeat;
+    color: #fff;
+}
+
+.login-hero {
+    flex: 1 1 auto;
+    min-width: 0;
+}
+
+/* Panel de login: negro al 20% de opacidad */
+.login-panel {
+    flex: 0 0 min(28rem, 36vw);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(0, 0, 0, 0.2);
+    padding: 2.5rem 2rem;
+    min-height: 100vh;
+    min-height: 100dvh;
+}
+
+.login-form-wrap {
+    width: 100%;
+    max-width: 22rem;
+}
+
+.login-panel-logo {
+    display: block;
+    width: 100%;
+    max-width: 11.5rem;
+    height: auto;
+    margin: 0 0 2rem auto;
+}
+
+.login-form {
+    display: flex;
+    flex-direction: column;
+    gap: 1.25rem;
+}
+
+.login-field label {
+    display: block;
+    font-size: 0.8125rem;
+    color: rgba(255, 255, 255, 0.55);
+    margin-bottom: 0.35rem;
+    font-weight: 400;
+}
+
+.login-field input {
+    width: 100%;
+    background: rgba(0, 0, 0, 0.35);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: 10px;
+    padding: 0.875rem 1rem;
+    font-size: 1rem;
+    color: #fff;
+    min-height: 48px;
+}
+
+.login-field input::placeholder {
+    color: rgba(255, 255, 255, 0.35);
+}
+
+.login-field input:focus {
+    outline: none;
+    border-color: rgba(255, 255, 255, 0.28);
+    box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.1);
+}
+
+.login-submit {
+    width: 100%;
+    background: #fff;
+    color: #0c131b;
+    border: none;
+    border-radius: 10px;
+    padding: 0.875rem 1rem;
+    font-size: 1.125rem;
+    font-weight: 700;
+    min-height: 52px;
+    cursor: pointer;
+    margin-top: 0.5rem;
+    transition: background 0.15s ease, color 0.15s ease;
+}
+
+.login-submit:hover {
+    background: rgba(255, 255, 255, 0.9);
+}
+
+.login-submit:focus {
+    outline: none;
+    box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.35);
+}
+
+.login-alert {
+    background: rgba(255, 59, 48, 0.15);
+    border: 1px solid rgba(255, 59, 48, 0.35);
+    color: #ff6b6b;
+    border-radius: 8px;
+    padding: 0.75rem 1rem;
+    font-size: 0.875rem;
+    margin-bottom: 1.25rem;
+}
+
+@media (max-width: 900px) {
+    .login-page {
+        flex-direction: column;
+    }
+
+    .login-hero {
+        flex: 0 0 auto;
+        min-height: 28vh;
+    }
+
+    .login-panel {
+        flex: 1 1 auto;
+        width: 100%;
+        min-height: auto;
+        padding: 2rem 1.5rem 2.5rem;
+    }
+}
+
+@media (max-width: 640px) {
+    .app-main .container-fluid {
+        padding-left: 1rem;
+        padding-right: 1rem;
+    }
+}
+
+/* Catálogo de elementos (Formas de Mesas / Estructurales) */
+.app-elementos-panel {
+    background: #ececec;
+    color: #1d1d1f;
+}
+
+.app-elementos-grid,
+.app-elementos-struct-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 12px;
+}
+
+.app-elementos-struct-grid--furniture,
+.app-elementos-struct-grid--shapes {
+    grid-template-columns: repeat(3, 1fr);
+}
+
+.app-elementos-struct-grid--shapes .app-elementos-struct-item {
+    min-height: 72px;
+    padding: 14px 10px;
+}
+
+.app-elementos-struct-grid--shapes .fp-struct-img {
+    max-width: 50px;
+    max-height: 50px;
+}
+
+.app-elementos-item,
+.app-elementos-struct-item {
+    background: #fff;
+    border: 1px solid #d2d2d7;
+    border-radius: 8px;
+    min-height: 88px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 10px 8px 8px;
+    gap: 6px;
+}
+
+.app-elementos-item svg,
+.app-elementos-struct-item svg,
+.app-elementos-struct-item .fp-struct-img {
+    width: 100%;
+    max-width: 56px;
+    max-height: 56px;
+    display: block;
+    object-fit: contain;
+}
+
+.app-elementos-struct-item .fp-struct-text-label {
+    font-size: 0.9375rem;
+    font-weight: 500;
+    color: #555555;
+}
+
+.app-elementos-item-label {
+    font-size: 0.6875rem;
+    color: #6e6e73;
+    text-align: center;
+    line-height: 1.25;
+}
+
+.app-elementos-section-title {
+    background: #dcdce0 !important;
+    color: #1d1d1f !important;
+    font-weight: 700;
+    font-size: 0.8125rem;
+    border-bottom: 1px solid #c8c8cc;
+}
+
+.app-elementos-accordion-btn {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+    padding: 0.75rem 1rem;
+    background: transparent;
+    border: none;
+    font-weight: 700;
+    font-size: 0.8125rem;
+    color: #1d1d1f;
+    text-align: left;
+    cursor: pointer;
+    line-height: 1.2;
+}
+
+.app-elementos-accordion-btn:hover,
+.app-elementos-accordion-btn:focus {
+    background: rgba(0, 0, 0, 0.04);
+    outline: none;
+}
+
+.app-elementos-accordion-label {
+    flex: 1;
+}
+
+.app-elementos-accordion-chevron {
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #636366;
+    transition: transform 0.2s ease;
+}
+
+.app-elementos-accordion-btn[aria-expanded="true"] .app-elementos-accordion-chevron {
+    transform: rotate(90deg);
+}
+
+@media (max-width: 768px) {
+    .app-elementos-grid,
+    .app-elementos-struct-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+
+    .app-elementos-struct-grid--furniture {
+        grid-template-columns: repeat(2, 1fr);
+    }
+
+    .app-elementos-struct-grid--shapes {
+        grid-template-columns: repeat(3, 1fr);
+    }
+}
+
+/* Editor de mesas (estilo SevenRooms) */
+.mesas-table {
+    border-collapse: separate;
+    border-spacing: 0;
+}
+
+.mesas-table thead th {
+    font-size: 0.7rem;
+    font-weight: 600;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    color: #8e8e93;
+    border-top: none;
+    border-bottom: 1px solid rgba(128, 128, 128, 0.22);
+    padding: 0.9rem 0.85rem;
+}
+
+.mesas-table tbody td {
+    vertical-align: middle;
+    padding: 0.55rem 0.85rem;
+    border-top: none;
+    border-bottom: 1px solid rgba(128, 128, 128, 0.14);
+}
+
+/* Más aire en los extremos de cada fila */
+.mesas-table thead th:first-child,
+.mesas-table tbody td:first-child {
+    padding-left: 1.5rem;
+}
+
+.mesas-table thead th:last-child,
+.mesas-table tbody td:last-child {
+    padding-right: 1.5rem;
+}
+
+.mesas-table tbody tr:last-child td {
+    border-bottom: none;
+}
+
+.mesas-table .form-control {
+    height: calc(1.5em + 0.8rem + 2px);
+    padding: 0.4rem 0.65rem;
+}
+
+.mesas-table .btn-sm {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0.3rem 0.5rem;
+}
+
+.mesas-table .btn-eliminar-mesa,
+.mesas-table .btn-duplicar-mesa {
+    margin-left: 0.25rem;
+}
+
+.mesas-table .mesa-row {
+    transition: background-color 0.15s ease;
+}
+
+.mesas-table .mesa-row:hover {
+    background: rgba(128, 128, 128, 0.06);
+}
+
+/* La tabla del editor de mesas necesita aire interno en su card */
+#mesasEditor .app-card {
+    overflow: hidden;
+}
+
+#mesasEditor .table-responsive {
+    padding: 0.25rem 0;
+}
+
+.app-btn-icon-only {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0.375rem 0.7rem;
+}
+
+.mesas-add-link {
+    font-weight: 600;
+    text-decoration: none;
+    box-shadow: none !important;
+}
+
+.mesas-add-link:hover {
+    text-decoration: underline;
+}
+
+/* Admin Tags — swatch de color en listado */
+.tag-swatch {
+    display: inline-block;
+    width: 0.85rem;
+    height: 0.85rem;
+    border-radius: 50%;
+    margin-right: 0.5rem;
+    vertical-align: -0.1em;
+    border: 1px solid rgba(0, 0, 0, 0.12);
+}
+
+.tag-color-code {
+    font-size: 0.8125rem;
+    color: inherit;
+    opacity: 0.75;
+}
+
+.form-control-color {
+    max-width: 4rem;
+    padding: 0.25rem;
+    height: calc(1.5em + 0.75rem + 2px);
+    cursor: pointer;
+}
+
+/* Admin Tags — layout estilo SevenRooms Reservation Tags */
+.tags-admin-title {
+    font-size: 1.35rem;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--app-text);
+}
+
+.tags-category {
+    padding: 1.25rem 0 1.35rem;
+    border-bottom: 1px solid var(--app-border);
+}
+
+.tags-category:last-of-type {
+    border-bottom: none;
+}
+
+.tags-category-name {
+    margin: 0;
+    font-size: 0.95rem;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: var(--app-text-secondary);
+}
+
+.tags-category-edit {
+    background: none;
+    border: none;
+    padding: 0;
+    font: inherit;
+    color: inherit;
+    letter-spacing: inherit;
+    text-transform: inherit;
+    cursor: pointer;
+}
+
+.tags-category-edit:hover {
+    color: var(--app-text);
+    text-decoration: underline;
+}
+
+.tags-category-meta {
+    margin: 0.15rem 0 0.85rem;
+    font-size: 0.8125rem;
+    font-style: italic;
+    color: var(--app-text-secondary);
+    opacity: 0.85;
+}
+
+.tags-category-pills {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.tag-pill {
+    display: inline-flex;
+    align-items: center;
+    border: none;
+    border-radius: 6px;
+    padding: 0.4rem 0.75rem;
+    font-size: 0.8125rem;
+    font-weight: 600;
+    line-height: 1.2;
+    cursor: pointer;
+    transition: filter 0.15s ease, transform 0.1s ease;
+}
+
+.tag-pill:hover {
+    filter: brightness(1.08);
+}
+
+.tag-pill:focus {
+    outline: none;
+    box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.25);
+}
+
+.tag-pill-add {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 2rem;
+    height: 2rem;
+    padding: 0;
+    border: none;
+    border-radius: 6px;
+    background: var(--app-surface-2);
+    color: var(--app-text);
+    font-size: 1.15rem;
+    font-weight: 600;
+    line-height: 1;
+    cursor: pointer;
+    transition: background 0.15s ease;
+}
+
+.tag-pill-add:hover {
+    background: var(--app-primary-hover);
+}
+
+.tag-pill-add:focus {
+    outline: none;
+    box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.25);
+}
+
+

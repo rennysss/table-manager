@@ -1,0 +1,19 @@
+# Despliegue en subcarpeta MAMP: redirige todo el tráfico a public/
+# URL: http://localhost:8888/1R_tables/
+
+<IfModule mod_rewrite.c>
+	Options +FollowSymlinks
+	RewriteEngine On
+	RewriteBase /1R_tables/
+
+	# Bloquear acceso directo a carpetas y archivos sensibles
+	RewriteRule ^(app|system|vendor|writable|tests|openspec|docs|spark)(/.*)?$ - [F,L,NC]
+	RewriteRule ^(\.env|composer\.(json|lock)|env|phpunit\.dist\.xml|preload\.php)$ - [F,L,NC]
+
+	# Archivos estáticos y rutas de la app viven en public/
+	RewriteCond %{REQUEST_URI} !^/1R_tables/public/
+	RewriteRule ^(.*)$ public/$1 [L]
+</IfModule>
+
+# Sin listado de directorios en la raíz del proyecto
+Options -Indexes
