@@ -373,6 +373,7 @@ class ReservasController extends BaseController
 
     /**
      * Registra una oleada de pax (+/−). Primera llegada positiva → Arrived.
+     * Si aún no hay asignación, crea un check-in sin mesa (walk-in de llegada).
      */
     public function registrarLlegada()
     {
@@ -387,14 +388,44 @@ class ReservasController extends BaseController
             ]);
         }
 
+        $sucursalId = (int) (session()->get('sucursal_id') ?? 0);
+        if ($sucursalId <= 0) {
+            return $this->response->setStatusCode(422)->setJSON([
+                'success' => false,
+                'error'   => 'Selecciona un establecimiento.',
+            ]);
+        }
+
         $model = model(ReservaAsignacionModel::class);
         $asignacion = $model->porCodigo($codigo);
 
+        // Sin mesa aún: crea registro de check-in para poder sumar pax (Arrived)
         if (! $asignacion) {
-            return $this->response->setStatusCode(422)->setJSON([
-                'success' => false,
-                'error'   => 'Asigna una mesa antes de registrar llegadas.',
+            $fecha = trim((string) ($json['fecha'] ?? date('Y-m-d')));
+            $reservaApi = (new ReservasApiService())->buscarEnListadoActivo($codigo, $sucursalId, $fecha);
+            $paxRes = (int) ($json['pax'] ?? $reservaApi['pax'] ?? 0);
+            $nombre = trim((string) ($json['cliente_nombre'] ?? $reservaApi['nombre'] ?? ''));
+            $hora   = $reservaApi['hora'] ?? null;
+
+            $model->insert([
+                'reserva_codigo' => $codigo,
+                'mesa_id'        => null,
+                'sucursal_id'    => $sucursalId,
+                'cliente_nombre' => $nombre !== '' ? $nombre : null,
+                'fecha'          => $fecha,
+                'hora'           => $hora,
+                'pax_reservados' => $paxRes > 0 ? $paxRes : null,
+                'pax_en_mesa'    => 0,
+                'estado_mesa'    => 'reservada',
+                'asignado_por'   => session()->get('usuario_id'),
             ]);
+            $asignacion = $model->find($model->getInsertID());
+            if (! $asignacion) {
+                return $this->response->setStatusCode(500)->setJSON([
+                    'success' => false,
+                    'error'   => 'No se pudo iniciar el check-in de la reserva.',
+                ]);
+            }
         }
 
         if (($asignacion['estado_mesa'] ?? '') === 'liberada') {
@@ -411,7 +442,6 @@ class ReservasController extends BaseController
         if ($nuevo > 0 && empty($asignacion['arrived_at'])) {
             $update['arrived_at'] = $ahora;
         }
-        // Si estaba liberada no llega aquí; si agrega pax y está reservada se mantiene para STATUS Arrived
 
         $model->update($asignacion['id'], $update);
 
@@ -429,13 +459,16 @@ class ReservasController extends BaseController
             $codigo,
             'llegada_pax',
             "registró {$signo}{$delta} pax → {$nuevo} en mesa",
-            ['pax_delta' => $delta, 'pax_en_mesa' => $nuevo]
+            ['pax_delta' => $delta, 'pax_en_mesa' => $nuevo, 'sin_mesa' => empty($asignacion['mesa_id'])],
+            $sucursalId
         );
 
-        $mesa = model(MesaModel::class)->find($asignacion['mesa_id']);
         $warning = null;
-        if ($mesa && $nuevo > (int) $mesa['maximo']) {
-            $warning = 'Los pax en mesa (' . $nuevo . ') superan el máximo de la mesa (' . (int) $mesa['maximo'] . ').';
+        if (! empty($asignacion['mesa_id'])) {
+            $mesa = model(MesaModel::class)->find($asignacion['mesa_id']);
+            if ($mesa && $nuevo > (int) $mesa['maximo']) {
+                $warning = 'Los pax en mesa (' . $nuevo . ') superan el máximo de la mesa (' . (int) $mesa['maximo'] . ').';
+            }
         }
 
         return $this->response->setJSON([
@@ -663,7 +696,9 @@ class ReservasController extends BaseController
             return null;
         }
 
-        $mesa = model(MesaModel::class)->find($asignacion['mesa_id']);
+        $mesa = ! empty($asignacion['mesa_id'])
+            ? model(MesaModel::class)->find($asignacion['mesa_id'])
+            : null;
         $asignacion['mesa_numero']   = $mesa['numero'] ?? null;
         $asignacion['mesa_maximo']   = isset($mesa['maximo']) ? (int) $mesa['maximo'] : null;
         $asignacion['status_label']  = ReservaAsignacionModel::statusLabel($asignacion);
@@ -694,14 +729,143 @@ class ReservasController extends BaseController
             $nombre  = trim((string) ($reserva['nombre'] ?? ''));
         }
 
+        $sucursal = $sucursalId > 0
+            ? model(SucursalModel::class)->find($sucursalId)
+            : null;
+
         return view('hostess/reservas/plano', [
             'titulo'               => 'Plano de mesas',
             'fecha'                => $fecha,
             'sucursalId'           => $sucursalId,
+            'sucursalNombre'       => trim((string) ($sucursal['nombre'] ?? '')),
             'reservaCodigo'        => $codigo,
             'reservaNombre'        => $nombre,
             'mostrarTituloTopbar'  => false,
         ]);
+    }
+
+    /**
+     * Ocupa una mesa libre para invitados sin reserva (walk-in).
+     */
+    public function ocuparWalkIn()
+    {
+        $json = $this->request->getJSON(true) ?? [];
+
+        $rules = [
+            'mesa_id'        => 'required|integer',
+            'fecha'          => 'required|valid_date[Y-m-d]',
+            'pax'            => 'required|integer|greater_than[0]',
+            'cliente_nombre' => 'permit_empty|max_length[150]',
+        ];
+
+        if (! $this->validateData($json, $rules)) {
+            return $this->response->setStatusCode(422)->setJSON([
+                'success' => false,
+                'errors'  => $this->validator->getErrors(),
+                'error'   => 'Datos inválidos para ocupar la mesa.',
+            ]);
+        }
+
+        $sucursalId = (int) session()->get('sucursal_id');
+        if ($sucursalId <= 0) {
+            return $this->response->setStatusCode(422)->setJSON([
+                'success' => false,
+                'error'   => 'Selecciona un establecimiento.',
+            ]);
+        }
+
+        $mesaId = (int) $json['mesa_id'];
+        $fecha  = (string) $json['fecha'];
+        $pax    = (int) $json['pax'];
+        $nombre = trim((string) ($json['cliente_nombre'] ?? ''));
+        if ($nombre === '') {
+            $nombre = 'Invitado';
+        }
+
+        $mesa = model(MesaModel::class)->find($mesaId);
+        if (! $mesa) {
+            return $this->response->setStatusCode(404)->setJSON([
+                'success' => false,
+                'error'   => 'Mesa no encontrada.',
+            ]);
+        }
+
+        // Evita ocupar si ya hay reserva/sentados en esa mesa hoy
+        $model  = model(ReservaAsignacionModel::class);
+        $activa = $model->where('mesa_id', $mesaId)
+            ->where('sucursal_id', $sucursalId)
+            ->where('fecha', $fecha)
+            ->whereIn('estado_mesa', ['reservada', 'ocupada'])
+            ->first();
+
+        if ($activa) {
+            return $this->response->setStatusCode(409)->setJSON([
+                'success' => false,
+                'error'   => 'La mesa ya está reservada u ocupada.',
+            ]);
+        }
+
+        $codigo = $this->generarCodigoWalkIn();
+        $ahora  = date('Y-m-d H:i:s');
+        $hora   = date('H:i:s');
+
+        $insertOk = $model->insert([
+            'reserva_codigo' => $codigo,
+            'mesa_id'        => $mesaId,
+            'sucursal_id'    => $sucursalId,
+            'cliente_nombre' => $nombre,
+            'fecha'          => $fecha,
+            'hora'           => $hora,
+            'pax_reservados' => $pax,
+            'pax_en_mesa'    => $pax,
+            'estado_mesa'    => 'ocupada',
+            'arrived_at'     => $ahora,
+            'seated_at'      => $ahora,
+            'asignado_por'   => session()->get('usuario_id'),
+        ]);
+
+        if (! $insertOk) {
+            return $this->response->setStatusCode(500)->setJSON([
+                'success' => false,
+                'error'   => 'No se pudo ocupar la mesa.',
+            ]);
+        }
+
+        $id = (int) $model->getInsertID();
+
+        $num = $mesa['numero'] ?? $mesaId;
+        (new ReservaActividadService())->registrar(
+            $codigo,
+            'walk_in',
+            "ocupó la mesa #{$num} sin reserva (walk-in, {$pax} pax)",
+            [
+                'mesa_id' => $mesaId,
+                'pax'     => $pax,
+                'walk_in' => true,
+            ],
+            $sucursalId
+        );
+
+        model(ReservaLlegadaModel::class)->insert([
+            'asignacion_id'  => $id,
+            'pax_delta'      => $pax,
+            'pax_resultante' => $pax,
+            'nota'           => 'Walk-in (sin reserva)',
+            'registrado_por' => session()->get('usuario_id'),
+            'created_at'     => $ahora,
+        ]);
+
+        return $this->response->setJSON([
+            'success'    => true,
+            'message'    => 'Mesa ocupada para invitado.',
+            'asignacion' => $this->enriquecerAsignacion($model->find($id)),
+        ]);
+    }
+
+    /** Código local único para walk-ins (no viene de OneReservations). */
+    private function generarCodigoWalkIn(): string
+    {
+        return 'WI-' . date('Ymd') . '-' . strtoupper(bin2hex(random_bytes(3)));
     }
 
     /** El rol administrador puede operar cualquier sucursal activa. */

@@ -333,4 +333,21 @@ class FloorplanController extends BaseController
 
         return redirect()->back()->with('success', 'FloorPlan activado.');
     }
+
+    public function desactivar(int $floorplanId)
+    {
+        $floorplan = model(FloorplanModel::class)->find($floorplanId);
+
+        if (! $floorplan) {
+            return redirect()->back()->with('error', 'FloorPlan no encontrado.');
+        }
+
+        model(FloorplanModel::class)->desactivar($floorplanId);
+
+        if ($this->request->isAJAX()) {
+            return $this->response->setJSON(['success' => true, 'message' => 'FloorPlan desactivado.']);
+        }
+
+        return redirect()->back()->with('success', 'FloorPlan desactivado.');
+    }
 }

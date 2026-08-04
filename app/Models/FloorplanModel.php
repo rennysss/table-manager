@@ -73,4 +73,12 @@ class FloorplanModel extends Model
 
         return $this->db->transStatus();
     }
+
+    /**
+     * Desactiva un floorplan (sin activar otro automáticamente).
+     */
+    public function desactivar(int $floorplanId): bool
+    {
+        return (bool) $this->update($floorplanId, ['activo' => 0]);
+    }
 }

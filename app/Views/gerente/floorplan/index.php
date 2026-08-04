@@ -62,12 +62,19 @@
                                        rel="noopener noreferrer">
                                         Diseñar
                                     </a>
-                                    <?php if (! $fp['activo']): ?>
+                                    <?php if (! empty($fp['activo'])): ?>
+                                    <form method="post"
+                                          action="<?= base_url("gerente/floorplan/{$fp['id']}/desactivar") ?>"
+                                          class="m-0">
+                                        <?= csrf_field() ?>
+                                        <button type="submit" class="dropdown-item text-warning">Desactivar</button>
+                                    </form>
+                                    <?php else: ?>
                                     <form method="post"
                                           action="<?= base_url("gerente/floorplan/{$fp['id']}/activar") ?>"
                                           class="m-0">
                                         <?= csrf_field() ?>
-                                        <button type="submit" class="dropdown-item">Activar</button>
+                                        <button type="submit" class="dropdown-item text-success">Activar</button>
                                     </form>
                                     <?php endif; ?>
                                 </div>

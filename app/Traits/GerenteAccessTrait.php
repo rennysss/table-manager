@@ -2,18 +2,37 @@
 
 namespace App\Traits;
 
+use App\Models\SucursalModel;
+
 /**
  * Validación de acceso a sucursales asignadas al gerente.
+ * Administradores ven y operan todas las sucursales activas.
  */
 trait GerenteAccessTrait
 {
     protected function sucursalesAsignadas(): array
     {
+        if ($this->esAdminGlobal()) {
+            return model(SucursalModel::class)
+                ->select('tm_sucursales.id, tm_sucursales.nombre, tm_sucursales.pais_id, tm_sucursales.ciudad, tm_paises.nombre AS pais_nombre')
+                ->join('tm_paises', 'tm_paises.id = tm_sucursales.pais_id', 'left')
+                ->where('tm_sucursales.estatus', 'activo')
+                ->orderBy('tm_sucursales.nombre', 'ASC')
+                ->findAll();
+        }
+
         return session()->get('sucursales') ?? [];
     }
 
     protected function sucursalPermitida(int $sucursalId): bool
     {
+        if ($this->esAdminGlobal()) {
+            return $sucursalId > 0 && (bool) model(SucursalModel::class)
+                ->where('id', $sucursalId)
+                ->where('estatus', 'activo')
+                ->first();
+        }
+
         foreach ($this->sucursalesAsignadas() as $s) {
             if ((int) $s['id'] === $sucursalId) {
                 return true;
@@ -53,5 +72,11 @@ trait GerenteAccessTrait
     protected function denegarAcceso()
     {
         return redirect()->to('/gerente')->with('error', 'No tienes acceso a este recurso.');
+    }
+
+    /** Admin opera con alcance global (todas las sucursales activas). */
+    protected function esAdminGlobal(): bool
+    {
+        return session()->get('rol') === 'admin';
     }
 }

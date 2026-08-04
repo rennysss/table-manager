@@ -22,9 +22,6 @@
         </button>
     </div>
 
-    <?php if (session()->getFlashdata('success')): ?>
-    <div class="alert alert-success"><?= esc(session()->getFlashdata('success')) ?></div>
-    <?php endif; ?>
     <?php if (session()->getFlashdata('errors')): ?>
     <div class="alert alert-danger">
         <ul class="mb-0 pl-3">
@@ -64,6 +61,17 @@
                             title="Acciones" aria-label="Acciones">&#8942;</button>
                     <div class="dropdown-menu dropdown-menu-right app-dropdown-menu">
                         <a class="dropdown-item" href="<?= base_url("admin/floorplan/{$fp['id']}/editor") ?>">Editar</a>
+                        <?php if (! empty($fp['activo'])): ?>
+                        <form method="post" action="<?= base_url("admin/floorplan/{$fp['id']}/desactivar") ?>" class="m-0">
+                            <?= csrf_field() ?>
+                            <button type="submit" class="dropdown-item text-warning">Desactivar</button>
+                        </form>
+                        <?php else: ?>
+                        <form method="post" action="<?= base_url("admin/floorplan/{$fp['id']}/activar") ?>" class="m-0">
+                            <?= csrf_field() ?>
+                            <button type="submit" class="dropdown-item text-success">Activar</button>
+                        </form>
+                        <?php endif; ?>
                         <form method="post" action="<?= base_url("admin/floorplan/{$fp['id']}/duplicar") ?>" class="m-0">
                             <?= csrf_field() ?>
                             <button type="submit" class="dropdown-item">Duplicar</button>

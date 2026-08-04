@@ -95,7 +95,12 @@
                             <a href="<?= base_url("gerente/floorplan/{$fp['id']}/editor") ?>" class="btn btn-sm btn-dark">
                                 Editor
                             </a>
-                            <?php if (! $fp['activo']): ?>
+                            <?php if (! empty($fp['activo'])): ?>
+                            <form method="post" action="<?= base_url("gerente/floorplan/{$fp['id']}/desactivar") ?>" class="d-inline">
+                                <?= csrf_field() ?>
+                                <button type="submit" class="btn btn-sm btn-outline-warning">Desactivar</button>
+                            </form>
+                            <?php else: ?>
                             <form method="post" action="<?= base_url("gerente/floorplan/{$fp['id']}/activar") ?>" class="d-inline">
                                 <?= csrf_field() ?>
                                 <button type="submit" class="btn btn-sm btn-outline-success">Activar</button>

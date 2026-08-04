@@ -84,11 +84,6 @@
                                 <td class="mesa-cell" data-label="Mesa"><?= $asig && ($asig['mesa_numero'] ?? null) !== null && $asig['mesa_numero'] !== '' ? esc('#' . $asig['mesa_numero']) : '—' ?></td>
                             </tr>
                             <?php endforeach; ?>
-                            <?php if (empty($reservas)): ?>
-                            <tr class="hostess-empty-row">
-                                <td colspan="4" class="text-center">No hay reservas para esta fecha.</td>
-                            </tr>
-                            <?php endif; ?>
                         </tbody>
                     </table>
                 </div>

@@ -34,14 +34,18 @@ class ReservaAsignacionModel extends Model
 
     public function estadosMesas(int $sucursalId, string $fecha): array
     {
-        $rows = $this->select('mesa_id, estado_mesa, reserva_codigo, cliente_nombre, tags_json, pax_en_mesa, pax_reservados')
+        $rows = $this->select('mesa_id, estado_mesa, reserva_codigo, cliente_nombre, tags_json, pax_en_mesa, pax_reservados, hora, arrived_at, seated_at')
             ->where('sucursal_id', $sucursalId)
             ->where('fecha', $fecha)
             ->whereIn('estado_mesa', ['reservada', 'ocupada'])
+            ->where('mesa_id IS NOT NULL', null, false)
             ->findAll();
 
         $mapa = [];
         foreach ($rows as $row) {
+            if (empty($row['mesa_id'])) {
+                continue;
+            }
             $mapa[$row['mesa_id']] = $row;
         }
 
@@ -59,11 +63,12 @@ class ReservaAsignacionModel extends Model
 
         $estado = $asignacion['estado_mesa'] ?? 'reservada';
         $pax    = (int) ($asignacion['pax_en_mesa'] ?? 0);
+        $tieneMesa = ! empty($asignacion['mesa_id']);
 
         return match ($estado) {
             'liberada' => 'Liberada',
             'ocupada'  => 'Ocupada',
-            'reservada' => $pax > 0 ? 'Arrived' : 'Asignada',
+            'reservada' => $pax > 0 ? 'Arrived' : ($tieneMesa ? 'Asignada' : 'Check-in'),
             default    => 'Asignada',
         };
     }

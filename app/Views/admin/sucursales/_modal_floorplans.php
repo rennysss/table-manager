@@ -68,7 +68,14 @@
                 </td>
                 <td class="text-right text-nowrap">
                     <a href="<?= base_url("admin/floorplan/{$fp['id']}/editor") ?>" class="btn btn-sm btn-secondary">Editor</a>
-                    <?php if (! $fp['activo']): ?>
+                    <?php if (! empty($fp['activo'])): ?>
+                    <form method="post" action="<?= base_url("admin/floorplan/{$fp['id']}/desactivar") ?>"
+                          class="d-inline form-activar-floorplan"
+                          data-reload-url="<?= base_url("admin/sucursales/{$sucursal['id']}/modal/floorplans") ?>">
+                        <?= csrf_field() ?>
+                        <button type="submit" class="btn btn-sm btn-outline-warning">Desactivar</button>
+                    </form>
+                    <?php else: ?>
                     <form method="post" action="<?= base_url("admin/floorplan/{$fp['id']}/activar") ?>"
                           class="d-inline form-activar-floorplan"
                           data-reload-url="<?= base_url("admin/sucursales/{$sucursal['id']}/modal/floorplans") ?>">

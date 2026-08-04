@@ -34,12 +34,70 @@
     gap: 12px;
 }
 
+.fp-toolbar-left {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    min-width: 0;
+}
+
+/* Botón volver a la lista de floorplans */
+.fp-nav-back {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    flex-shrink: 0;
+    padding: 6px 10px 6px 6px;
+    border-radius: 8px;
+    border: 1px solid var(--fp-border);
+    background: var(--fp-surface-2);
+    color: var(--fp-text);
+    font-size: 0.8125rem;
+    font-weight: 500;
+    text-decoration: none;
+    line-height: 1;
+    transition: background 0.15s, border-color 0.15s, color 0.15s;
+}
+
+.fp-nav-back:hover {
+    background: #3A3A3C;
+    border-color: #48484A;
+    color: #fff;
+    text-decoration: none;
+}
+
+.fp-nav-back svg {
+    display: block;
+    flex-shrink: 0;
+}
+
 .fp-breadcrumb {
     font-size: 0.875rem;
     color: var(--fp-text-muted);
     display: inline-flex;
     align-items: center;
     gap: 4px;
+    min-width: 0;
+}
+
+.fp-breadcrumb-link {
+    color: var(--fp-text-muted);
+    text-decoration: none;
+}
+
+.fp-breadcrumb-link:hover {
+    color: var(--fp-text);
+    text-decoration: underline;
+}
+
+.fp-breadcrumb-sep {
+    color: var(--fp-text-muted);
+    user-select: none;
+}
+
+@media (max-width: 640px) {
+    .fp-nav-back-label { display: none; }
+    .fp-nav-back { padding: 6px; }
 }
 
 .fp-name-input {
@@ -777,7 +835,39 @@
     font-size: 0.8125rem;
     color: var(--app-text-secondary, #98989d);
     flex-shrink: 0;
+    align-items: center;
 }
+
+.hostess-plano-legend .legend-item {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.hostess-plano-legend .legend-swatch {
+    display: inline-block;
+    width: 12px;
+    height: 12px;
+    border-radius: 3px;
+    flex-shrink: 0;
+}
+
+/* Respaldo por clase (mismo color que las mesas en hostess-plano.js) */
+.hostess-plano-legend .legend-libre .legend-swatch { background: #8E8E93 !important; }
+.hostess-plano-legend .legend-reservada .legend-swatch { background: #FF9500 !important; }
+.hostess-plano-legend .legend-ocupada .legend-swatch { background: #8FAE9D !important; }
+.hostess-plano-legend .legend-walkin .legend-swatch { background: #8B5CF6 !important; }
+
+/* Compatibilidad con leyendas que aún usan ::before */
+.legend-item::before {
+    content: '';
+    display: none;
+}
+
+.legend-libre::before { background: #8E8E93; }
+.legend-reservada::before { background: #FF9500; }
+.legend-ocupada::before { background: #8FAE9D; }
+.legend-walkin::before { background: #8B5CF6; }
 
 .hostess-plano-confirm-text {
     font-size: 0.9375rem;
@@ -785,19 +875,57 @@
     color: var(--app-text, #f5f5f7);
 }
 
-.legend-item::before {
-    content: '';
-    display: inline-block;
-    width: 12px;
-    height: 12px;
-    border-radius: 3px;
-    margin-right: 6px;
-    vertical-align: middle;
+/* Info reserva en mesa ocupada */
+.hostess-plano-info-list {
+    margin: 0;
 }
 
-.legend-libre::before { background: #8E8E93; }
-.legend-reservada::before { background: #FF9500; }
-.legend-ocupada::before { background: #8FAE9D; }
+.hostess-plano-info-row {
+    display: grid;
+    grid-template-columns: 8.5rem 1fr;
+    gap: 0.5rem 1rem;
+    padding: 0.45rem 0;
+    border-bottom: 1px solid var(--app-border, #3a3a3c);
+}
+
+.hostess-plano-info-row:last-child {
+    border-bottom: none;
+}
+
+.hostess-plano-info-row dt {
+    margin: 0;
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--app-text-secondary, #98989d);
+    align-self: center;
+}
+
+.hostess-plano-info-row dd {
+    margin: 0;
+    font-size: 0.9375rem;
+    font-weight: 500;
+    color: var(--app-text, #f5f5f7);
+    word-break: break-word;
+}
+
+.hostess-plano-info-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+}
+
+.hostess-plano-tag-pill {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 999px;
+    background: rgba(0, 172, 172, 0.15);
+    border: 1px solid rgba(0, 172, 172, 0.35);
+    color: #7ee0e0;
+    font-size: 0.75rem;
+    font-weight: 600;
+}
 
 @media (max-width: 768px) {
     .fp-sidebar { width: 240px; }

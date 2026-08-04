@@ -25,11 +25,25 @@ $assetVer = static function (string $rel): string {
         if (btn) { btn.setAttribute('aria-expanded', 'false'); }
     })();
 </script>
+<?php
+// Vuelve a la lista de floorplans de la sucursal (admin) o del gerente.
+$volverUrl = $modo === 'admin'
+    ? base_url("admin/sucursales/{$sucursal['id']}/floorplans")
+    : base_url('gerente/floorplan');
+?>
 <div class="fp-embed">
     <!-- Barra superior del editor estilo Sevenrooms -->
     <header class="fp-toolbar">
         <div class="fp-toolbar-left">
-            <span class="fp-breadcrumb">Layout /
+            <a href="<?= $volverUrl ?>" class="fp-nav-back" title="Volver a los floorplans" aria-label="Volver a los floorplans">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                    <polyline points="15 18 9 12 15 6"/>
+                </svg>
+                <span class="fp-nav-back-label">Volver</span>
+            </a>
+            <span class="fp-breadcrumb" aria-label="Ruta del layout">
+                <a href="<?= $volverUrl ?>" class="fp-breadcrumb-link">Layout</a>
+                <span class="fp-breadcrumb-sep" aria-hidden="true">/</span>
                 <input type="text" id="fpNombre" class="fp-name-input"
                        value="<?= esc($floorplan['nombre'], 'attr') ?>"
                        maxlength="100" aria-label="Nombre del floorplan"
@@ -50,7 +64,7 @@ $assetVer = static function (string $rel): string {
                 <option value="1">100%</option>
             </select>
             <span id="fpSaveStatus" class="fp-save-status" aria-live="polite"></span>
-            <a href="<?= $modo === 'admin' ? base_url("admin/sucursales/{$sucursal['id']}/floorplans") : base_url('gerente/floorplan') ?>" class="fp-link">Descartar cambios</a>
+            <a href="<?= $volverUrl ?>" class="fp-link">Descartar cambios</a>
             <button type="button" class="fp-btn fp-btn-primary" id="btnSave">Guardar</button>
         </div>
     </header>

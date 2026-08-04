@@ -145,8 +145,21 @@ class FloorplanController extends BaseController
             $floorplan['ambiente_id'] ? (int) $floorplan['ambiente_id'] : null
         );
 
-        return redirect()->to('/gerente/floorplan')
-            ->with('success', 'FloorPlan "' . $floorplan['nombre'] . '" activado para la sucursal.');
+        return redirect()->back()
+            ->with('success', 'FloorPlan "' . $floorplan['nombre'] . '" activado.');
+    }
+
+    public function desactivar(int $floorplanId)
+    {
+        if (! $this->floorplanPermitido($floorplanId)) {
+            return $this->denegarAcceso();
+        }
+
+        $floorplan = model(FloorplanModel::class)->find($floorplanId);
+        model(FloorplanModel::class)->desactivar($floorplanId);
+
+        return redirect()->back()
+            ->with('success', 'FloorPlan "' . $floorplan['nombre'] . '" desactivado.');
     }
 
     public function editor(int $floorplanId)

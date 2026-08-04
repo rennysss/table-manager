@@ -19,6 +19,7 @@ var HostessApp = (function () {
         info: 'Mostrando _START_ a _END_ de _TOTAL_ entradas',
         infoEmpty: 'Sin registros',
         infoFiltered: '(filtrado de _MAX_ entradas)',
+        emptyTable: 'No hay reservas para esta fecha.',
         zeroRecords: 'No hay coincidencias',
         paginate: { first: 'Primero', last: 'Último', next: 'Siguiente', previous: 'Anterior' }
     };
@@ -32,17 +33,29 @@ var HostessApp = (function () {
             searching: false,
             deferRender: true,
             autoWidth: false,
-            createdRow: function (row) {
-                var indice = $(row).index();
-                var reserva = ultimasReservasTabla[indice];
-                if (!reserva) return;
+            columns: [
+                { orderable: true },
+                { orderable: true },
+                { orderable: true },
+                { orderable: true }
+            ],
+            createdRow: function (row, data, dataIndex) {
+                var reserva = ultimasReservasTabla[dataIndex];
+                if (!reserva && data && data.DT_RowAttr && data.DT_RowAttr['data-codigo']) {
+                    return;
+                }
+                var codigo = $(row).attr('data-codigo') || (reserva && reserva.codigo);
+                if (!codigo && reserva) codigo = reserva.codigo;
+                if (!reserva && !codigo) return;
 
-                $(row)
-                    .attr('data-codigo', reserva.codigo)
-                    .addClass('hostess-row')
-                    .attr('role', 'button')
-                    .attr('tabindex', '0')
-                    .attr('aria-label', 'Seleccionar reserva ' + reserva.codigo);
+                if (reserva) {
+                    $(row)
+                        .attr('data-codigo', reserva.codigo)
+                        .addClass('hostess-row')
+                        .attr('role', 'button')
+                        .attr('tabindex', '0')
+                        .attr('aria-label', 'Seleccionar reserva ' + reserva.codigo);
+                }
                 $('td', row).eq(0).attr('data-label', 'Reserva');
                 $('td', row).eq(1).attr('data-label', 'Nombre');
                 $('td', row).eq(2).attr('data-label', 'RP');
@@ -56,7 +69,11 @@ var HostessApp = (function () {
 
         sincronizarCache(cfg.reservasIniciales || [], cfg.asignacionesIniciales || {});
 
-        tablaReservas = $('#tablaReservas').DataTable(opcionesDataTable(Object.keys(cacheReservas).length));
+        // Si quedó una instancia previa (navegación/cache), la destruye
+        if ($.fn.DataTable.isDataTable('#tablaReservas')) {
+            $('#tablaReservas').DataTable().clear().destroy();
+        }
+        tablaReservas = $('#tablaReservas').DataTable(opcionesDataTable(ultimasReservasTabla.length));
 
         $('#btnFechaAnterior').on('click', function () {
             $('#fechaReservas').val(sumarDias($('#fechaReservas').val(), -1));
@@ -73,14 +90,20 @@ var HostessApp = (function () {
         $('#btnAgregarPax').on('click', function () {
             if (!reservaSeleccionada) return;
             var asig = cacheAsignaciones[reservaSeleccionada.codigo];
-            if (!asig) {
-                alert('Asigna una mesa antes de registrar pax.');
+            if (asig && asig.estado_mesa === 'liberada') {
+                alert('La reserva ya fue liberada.');
                 return;
             }
             $('#inputPaxDelta').val(1);
-            var reservados = asig.pax_reservados != null ? asig.pax_reservados : (reservaSeleccionada.pax || '—');
-            var enMesa = asig.pax_en_mesa || 0;
-            $('#modalPaxHint').text('Reservados: ' + reservados + ' · En mesa ahora: ' + enMesa);
+            var reservados = (asig && asig.pax_reservados != null)
+                ? asig.pax_reservados
+                : (reservaSeleccionada.pax != null ? reservaSeleccionada.pax : '—');
+            var enMesa = asig ? (asig.pax_en_mesa || 0) : 0;
+            var hint = 'Reservados: ' + reservados + ' · En mesa ahora: ' + enMesa;
+            if (!asig || !asig.mesa_id) {
+                hint += ' · Puedes registrar llegada sin mesa (status Arrived)';
+            }
+            $('#modalPaxHint').text(hint);
             $('#modalAgregarPax').modal('show');
         });
 
@@ -90,7 +113,14 @@ var HostessApp = (function () {
                 alert('Indica al menos 1 pax.');
                 return;
             }
-            postCheckin(config.llegadaUrl, { reserva_codigo: reservaSeleccionada.codigo, pax_delta: delta }, function () {
+            var body = {
+                reserva_codigo: reservaSeleccionada.codigo,
+                pax_delta: delta,
+                fecha: config.fecha || '',
+                pax: reservaSeleccionada.pax || null,
+                cliente_nombre: reservaSeleccionada.nombre || ''
+            };
+            postCheckin(config.llegadaUrl, body, function () {
                 $('#modalAgregarPax').modal('hide');
             });
         });
@@ -275,10 +305,12 @@ var HostessApp = (function () {
     function sincronizarCache(reservas, asignaciones) {
         cacheReservas = {};
         cacheAsignaciones = asignaciones || {};
+        ultimasReservasTabla = [];
 
         (reservas || []).forEach(function (r) {
             if (r && r.codigo) {
                 cacheReservas[r.codigo] = r;
+                ultimasReservasTabla.push(r);
             }
         });
     }
@@ -696,9 +728,10 @@ var HostessApp = (function () {
     }
 
     function actualizarBotonesCheckin(asignacion) {
-        var tieneMesa = !!(asignacion && asignacion.mesa_id);
         var liberada = asignacion && asignacion.estado_mesa === 'liberada';
-        $('#btnAgregarPax').prop('disabled', !tieneMesa || liberada);
+        // Agregar pax funciona con o sin mesa (check-in / Arrived)
+        $('#btnAgregarPax').prop('disabled', !!liberada);
+        var tieneMesa = !!(asignacion && asignacion.mesa_id);
         $('#btnAbrirPlano').text(tieneMesa ? 'Abrir plano / cambiar mesa' : 'Abrir plano y asignar mesa');
     }
 
@@ -880,10 +913,8 @@ var HostessApp = (function () {
     function actualizarTablaReservas(reservas, asignaciones) {
         var html = '';
         var total = reservas ? reservas.length : 0;
-
-        if (total === 0) {
-            html = '<tr class="hostess-empty-row"><td colspan="4" class="text-center">No hay reservas para esta fecha.</td></tr>';
-        } else {
+        // Siempre 4 <td> por fila (DataTables tn/18: no usar colspan en tbody)
+        if (total > 0) {
             reservas.forEach(function (r) {
                 var asig = asignaciones[r.codigo] || null;
                 var codigo = escapeHtml(r.codigo || '');
@@ -902,12 +933,18 @@ var HostessApp = (function () {
         }
 
         if (tablaReservas) {
+            tablaReservas.clear();
             tablaReservas.destroy();
             tablaReservas = null;
         }
 
-        $('#tablaReservas tbody').html(html);
-        tablaReservas = $('#tablaReservas').DataTable(opcionesDataTable(total));
+        // Limpia clase residual de una instancia previa
+        var $tabla = $('#tablaReservas');
+        $tabla.find('tbody').html(html);
+        $tabla.removeClass('dataTable no-footer');
+        $tabla.find('thead th').removeAttr('style');
+
+        tablaReservas = $tabla.DataTable(opcionesDataTable(total));
     }
 
     function formatearFechaVista(fechaIso) {

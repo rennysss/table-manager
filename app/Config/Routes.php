@@ -70,6 +70,7 @@ $routes->group('', ['filter' => 'auth'], static function ($routes) {
         $routes->get('floorplan/(:num)/editor', 'Admin\FloorplanController::editor/$1');
         $routes->post('floorplan/(:num)/guardar', 'Admin\FloorplanController::guardar/$1');
         $routes->post('floorplan/(:num)/activar', 'Admin\FloorplanController::activar/$1');
+        $routes->post('floorplan/(:num)/desactivar', 'Admin\FloorplanController::desactivar/$1');
         $routes->post('floorplan/(:num)/duplicar', 'Admin\FloorplanController::duplicar/$1');
 
         $routes->get('usuarios', 'Admin\UsuariosController::index');
@@ -99,6 +100,7 @@ $routes->group('', ['filter' => 'auth'], static function ($routes) {
         $routes->get('floorplan/(:num)/editor', 'Gerente\FloorplanController::editor/$1');
         $routes->post('floorplan/(:num)/guardar', 'Gerente\FloorplanController::guardar/$1');
         $routes->post('floorplan/(:num)/activar', 'Gerente\FloorplanController::activar/$1');
+        $routes->post('floorplan/(:num)/desactivar', 'Gerente\FloorplanController::desactivar/$1');
         $routes->post('floorplan/mesas/(:num)', 'Gerente\FloorplanController::actualizarMesa/$1');
         $routes->get('floorplan/mesas/(:num)/reservas', 'Gerente\FloorplanController::reservasMesa/$1');
     });
@@ -113,6 +115,7 @@ $routes->group('', ['filter' => 'auth'], static function ($routes) {
         $routes->get('reservas/actividad', 'Hostess\ReservasController::actividad');
         $routes->get('reservas/(:segment)/detalle', 'Hostess\ReservasController::detalle/$1');
         $routes->post('reservas/asignar', 'Hostess\ReservasController::asignarMesa');
+        $routes->post('reservas/ocupar-walkin', 'Hostess\ReservasController::ocuparWalkIn');
         $routes->post('reservas/tags', 'Hostess\ReservasController::agregarTags');
         $routes->post('reservas/llegada', 'Hostess\ReservasController::registrarLlegada');
         $routes->post('reservas/sentar', 'Hostess\ReservasController::sentar');
