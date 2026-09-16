@@ -99,8 +99,12 @@ class SucursalesController extends BaseController
             'marca_id'         => 'required|is_natural_no_zero',
             'nombre'           => 'required|min_length[2]|max_length[150]',
             'venue_id'         => 'permit_empty|max_length[100]',
-            'xetux_id'         => 'permit_empty|max_length[100]',
-            'reservas_api_key' => 'permit_empty|max_length[255]',
+            'xetux_id'             => 'permit_empty|max_length[100]',
+            'xetux_base_url'       => 'permit_empty|max_length[255]',
+            'xetux_api_key'        => 'permit_empty|max_length[255]',
+            'xetux_station_code'   => 'permit_empty|max_length[32]',
+            'xetux_payform_id'     => 'permit_empty|is_natural',
+            'reservas_api_key'     => 'permit_empty|max_length[255]',
             'pais_id'          => 'required|is_natural_no_zero',
             'estado_region_id' => 'required|is_natural_no_zero',
             'ciudad'           => 'permit_empty|max_length[100]',
@@ -139,8 +143,12 @@ class SucursalesController extends BaseController
             'marca_id'         => 'required|is_natural_no_zero',
             'nombre'           => 'required|min_length[2]|max_length[150]',
             'venue_id'         => 'permit_empty|max_length[100]',
-            'xetux_id'         => 'permit_empty|max_length[100]',
-            'reservas_api_key' => 'permit_empty|max_length[255]',
+            'xetux_id'             => 'permit_empty|max_length[100]',
+            'xetux_base_url'       => 'permit_empty|max_length[255]',
+            'xetux_api_key'        => 'permit_empty|max_length[255]',
+            'xetux_station_code'   => 'permit_empty|max_length[32]',
+            'xetux_payform_id'     => 'permit_empty|is_natural',
+            'reservas_api_key'     => 'permit_empty|max_length[255]',
             'pais_id'          => 'required|is_natural_no_zero',
             'estado_region_id' => 'required|is_natural_no_zero',
             'ciudad'           => 'permit_empty|max_length[100]',
@@ -207,8 +215,10 @@ class SucursalesController extends BaseController
             'marca_id'         => (int) $this->request->getPost('marca_id'),
             'nombre'           => $this->request->getPost('nombre'),
             'venue_id'         => trim((string) $this->request->getPost('venue_id')) ?: null,
-            'xetux_id'         => trim((string) $this->request->getPost('xetux_id')) ?: null,
-            'pais_id'          => $paisId,
+            'xetux_id'           => trim((string) $this->request->getPost('xetux_id')) ?: null,
+            'xetux_base_url'     => rtrim(trim((string) $this->request->getPost('xetux_base_url')), '/') ?: null,
+            'xetux_station_code' => trim((string) $this->request->getPost('xetux_station_code')) ?: null,
+            'pais_id'            => $paisId,
             'estado_region_id' => $estadoId,
             'estado'           => $estado['nombre'],
             'ciudad'           => $this->request->getPost('ciudad'),
@@ -221,6 +231,16 @@ class SucursalesController extends BaseController
         } elseif (! $preservarApiKeySiVacio) {
             $datos['reservas_api_key'] = null;
         }
+
+        $xetuxKey = trim((string) $this->request->getPost('xetux_api_key'));
+        if ($xetuxKey !== '') {
+            $datos['xetux_api_key'] = $xetuxKey;
+        } elseif (! $preservarApiKeySiVacio) {
+            $datos['xetux_api_key'] = null;
+        }
+
+        $payform = trim((string) $this->request->getPost('xetux_payform_id'));
+        $datos['xetux_payform_id'] = $payform !== '' ? (int) $payform : null;
 
         return $datos;
     }

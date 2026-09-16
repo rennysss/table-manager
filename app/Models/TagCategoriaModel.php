@@ -13,6 +13,7 @@ class TagCategoriaModel extends Model
     protected $allowedFields    = [
         'nombre',
         'alcance',
+        'dominio',
         'mostrar_en_reserva',
         'mostrar_en_chit',
         'orden',
@@ -56,6 +57,7 @@ class TagCategoriaModel extends Model
     {
         $partes = [
             ($categoria['alcance'] ?? 'global') === 'local' ? 'Local' : 'Global',
+            ($categoria['dominio'] ?? 'reserva') === 'cliente' ? 'Tag de cliente' : 'Tag de reserva',
         ];
 
         if (! empty($categoria['mostrar_en_reserva'])) {

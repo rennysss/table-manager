@@ -152,6 +152,7 @@ class TagsController extends BaseController
         $rules = [
             'nombre'  => 'required|min_length[2]|max_length[80]',
             'alcance' => 'required|in_list[global,local]',
+            'dominio' => 'required|in_list[cliente,reserva]',
             'estatus' => 'required|in_list[activo,inactivo]',
         ];
 
@@ -162,6 +163,7 @@ class TagsController extends BaseController
         $this->categorias->insert([
             'nombre'             => $this->request->getPost('nombre'),
             'alcance'            => $this->request->getPost('alcance'),
+            'dominio'            => $this->request->getPost('dominio'),
             'mostrar_en_reserva' => $this->request->getPost('mostrar_en_reserva') ? 1 : 0,
             'mostrar_en_chit'    => $this->request->getPost('mostrar_en_chit') ? 1 : 0,
             'orden'              => (int) ($this->categorias->selectMax('orden')->first()['orden'] ?? 0) + 1,
@@ -183,6 +185,7 @@ class TagsController extends BaseController
         $rules = [
             'nombre'  => 'required|min_length[2]|max_length[80]',
             'alcance' => 'required|in_list[global,local]',
+            'dominio' => 'required|in_list[cliente,reserva]',
             'estatus' => 'required|in_list[activo,inactivo]',
         ];
 
@@ -193,6 +196,7 @@ class TagsController extends BaseController
         $this->categorias->update($id, [
             'nombre'             => $this->request->getPost('nombre'),
             'alcance'            => $this->request->getPost('alcance'),
+            'dominio'            => $this->request->getPost('dominio'),
             'mostrar_en_reserva' => $this->request->getPost('mostrar_en_reserva') ? 1 : 0,
             'mostrar_en_chit'    => $this->request->getPost('mostrar_en_chit') ? 1 : 0,
             'estatus'            => $this->request->getPost('estatus'),

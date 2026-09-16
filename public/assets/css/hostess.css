@@ -656,6 +656,17 @@
     margin-right: 0.35rem;
 }
 
+/* Bloque Xetux (mesero / mesa / sentar) */
+.hostess-xetux-block {
+    margin-top: 0.75rem;
+    padding-top: 0.75rem;
+    border-top: 1px solid rgba(0, 0, 0, 0.08);
+}
+
+.hostess-xetux-select:disabled {
+    opacity: 0.85;
+}
+
 /* Módulo Reservation Tags (SevenRooms) */
 .hostess-tags-module {
     display: block;

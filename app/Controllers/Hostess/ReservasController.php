@@ -7,11 +7,13 @@ use App\Models\ClienteModel;
 use App\Models\MesaModel;
 use App\Models\ReservaAsignacionModel;
 use App\Models\ReservaLlegadaModel;
+use App\Models\ReservaXetuxOrdenModel;
 use App\Models\SucursalModel;
 use App\Models\TagCategoriaModel;
 use App\Models\TagModel;
 use App\Services\ReservaActividadService;
 use App\Services\ReservasApiService;
+use App\Services\XetuxApiService;
 
 class ReservasController extends BaseController
 {
@@ -43,7 +45,8 @@ class ReservasController extends BaseController
             'reservas'       => $reservas,
             'asignaciones'   => $asignMap,
             'tags'           => model(TagModel::class)->activos(),
-            'tagCategorias'  => $this->categoriasTagsActivos(),
+            'tagCategoriasReserva' => $this->categoriasTagsActivos('reserva'),
+            'tagCategoriasCliente' => $this->categoriasTagsActivos('cliente'),
             'sucursalId'     => $sucursalId,
             'sucursalActiva' => $sucursalActiva,
             'filtrosUbicacion' => $this->filtrosUbicacionIniciales($sucursalActiva),
@@ -57,13 +60,16 @@ class ReservasController extends BaseController
      *
      * @return list<array<string, mixed>>
      */
-    private function categoriasTagsActivos(): array
+    private function categoriasTagsActivos(string $dominio): array
     {
         $categorias = model(TagCategoriaModel::class)->conTags();
         $resultado  = [];
 
         foreach ($categorias as $cat) {
             if (($cat['estatus'] ?? '') !== 'activo') {
+                continue;
+            }
+            if (($cat['dominio'] ?? 'reserva') !== $dominio) {
                 continue;
             }
             // Solo categorías visibles en el detalle de reserva (hostess)
@@ -249,10 +255,16 @@ class ReservasController extends BaseController
             log_message('error', 'Actividad en detalle: ' . $e->getMessage());
         }
 
+        $xetuxOrden = null;
+        if ($sucursalId > 0) {
+            $xetuxOrden = model(ReservaXetuxOrdenModel::class)->activaPorCodigo($codigo, $sucursalId);
+        }
+
         return $this->response->setJSON([
-            'reserva'    => $reserva,
-            'asignacion' => $this->enriquecerAsignacion($asignacion),
-            'actividad'  => $eventos,
+            'reserva'      => $reserva,
+            'asignacion'   => $this->enriquecerAsignacion($asignacion),
+            'actividad'    => $eventos,
+            'xetux_orden'  => $xetuxOrden,
         ]);
     }
 
@@ -318,15 +330,6 @@ class ReservasController extends BaseController
         }
         if ($existente === null) {
             $datos['pax_en_mesa'] = 0;
-        }
-
-        if ($email !== '' && (! $existente || empty($existente['tags_json']))) {
-            $cliente = model(ClienteModel::class)->porEmail($email);
-            if ($cliente && ! empty($cliente['tags_json'])) {
-                $datos['tags_json'] = is_string($cliente['tags_json'])
-                    ? $cliente['tags_json']
-                    : json_encode($cliente['tags_json'], JSON_UNESCAPED_UNICODE);
-            }
         }
 
         if ($existente) {
@@ -564,8 +567,7 @@ class ReservasController extends BaseController
 
     public function agregarTags()
     {
-        $json  = $this->request->getJSON(true) ?? [];
-        $tags  = is_array($json['tags'] ?? null) ? $json['tags'] : [];
+        $json   = $this->request->getJSON(true) ?? [];
         $codigo = trim((string) ($json['reserva_codigo'] ?? ''));
         $email  = ClienteModel::normalizarEmail($json['email'] ?? '');
 
@@ -576,9 +578,16 @@ class ReservasController extends BaseController
             ]);
         }
 
+        $tagsCliente = is_array($json['tags_cliente'] ?? null) ? $json['tags_cliente'] : null;
+        $tagsReserva = is_array($json['tags_reserva'] ?? null) ? $json['tags_reserva'] : null;
+        // Compatibilidad: un solo arreglo "tags" se trata como tags de reserva
+        if ($tagsReserva === null && is_array($json['tags'] ?? null)) {
+            $tagsReserva = $json['tags'];
+        }
+
         $clienteGuardado = false;
-        if ($email !== '') {
-            model(ClienteModel::class)->upsertTags($email, $tags, [
+        if ($tagsCliente !== null && $email !== '') {
+            model(ClienteModel::class)->upsertTags($email, $tagsCliente, [
                 'nombre'   => $json['cliente_nombre'] ?? null,
                 'telefono' => $json['telefono'] ?? null,
             ]);
@@ -590,19 +599,399 @@ class ReservasController extends BaseController
             ->orderBy('created_at', 'DESC')
             ->first();
 
-        if ($asignacion) {
+        $reservaGuardada = false;
+        if ($tagsReserva !== null && $asignacion) {
             model(ReservaAsignacionModel::class)->update($asignacion['id'], [
-                'tags_json' => json_encode(array_values($tags), JSON_UNESCAPED_UNICODE),
+                'tags_json' => json_encode(array_values($tagsReserva), JSON_UNESCAPED_UNICODE),
             ]);
+            $reservaGuardada = true;
         }
 
-        if (! $asignacion && ! $clienteGuardado) {
+        if ($tagsReserva !== null && ! $asignacion) {
+            // Permite guardar tags de reserva creando asignación mínima
+            $sucursalId = (int) (session()->get('sucursal_id') ?? 0);
+            $fecha = trim((string) ($json['fecha'] ?? date('Y-m-d')));
+            model(ReservaAsignacionModel::class)->insert([
+                'reserva_codigo' => $codigo,
+                'mesa_id'        => null,
+                'sucursal_id'    => $sucursalId,
+                'cliente_nombre' => $json['cliente_nombre'] ?? null,
+                'fecha'          => $fecha,
+                'tags_json'      => json_encode(array_values($tagsReserva), JSON_UNESCAPED_UNICODE),
+                'estado_mesa'    => 'reservada',
+                'asignado_por'   => session()->get('usuario_id'),
+            ]);
+            $reservaGuardada = true;
+        }
+
+        if (! $clienteGuardado && ! $reservaGuardada) {
             return $this->response->setStatusCode(422)->setJSON([
                 'success' => false,
-                'error'   => 'Sin email de cliente ni asignación de mesa; no se pueden guardar tags.',
+                'error'   => 'Indica tags de cliente (con email) o tags de reserva.',
             ]);
         }
 
+        $descParts = [];
+        if ($tagsCliente !== null) {
+            $descParts[] = 'cliente: ' . $this->nombresTags($tagsCliente);
+        }
+        if ($tagsReserva !== null) {
+            $descParts[] = 'reserva: ' . $this->nombresTags($tagsReserva);
+        }
+        (new ReservaActividadService())->registrar(
+            $codigo,
+            'tags',
+            'actualizó tags (' . implode(' · ', $descParts) . ')',
+            [
+                'tags_cliente' => $tagsCliente,
+                'tags_reserva' => $tagsReserva,
+            ]
+        );
+
+        return $this->response->setJSON([
+            'success' => true,
+            'cliente' => $clienteGuardado,
+            'reserva' => $reservaGuardada,
+        ]);
+    }
+
+    /** JSON — meseros disponibles en Xetux para la sucursal activa. */
+    public function xetuxMeseros()
+    {
+        $sucursalId = (int) (session()->get('sucursal_id') ?? 0);
+        if ($sucursalId <= 0) {
+            return $this->response->setStatusCode(422)->setJSON([
+                'success' => false,
+                'error'   => 'Selecciona un establecimiento.',
+            ]);
+        }
+
+        $servicio = new XetuxApiService();
+        $lista    = $servicio->meserosDisponibles($sucursalId);
+
+        if ($lista === [] && $servicio->obtenerUltimoError()) {
+            return $this->response->setStatusCode(502)->setJSON([
+                'success' => false,
+                'error'   => $servicio->obtenerUltimoError(),
+            ]);
+        }
+
+        return $this->response->setJSON(['success' => true, 'items' => $lista]);
+    }
+
+    /** JSON — mesas (spaces) disponibles en Xetux. */
+    public function xetuxMesas()
+    {
+        $sucursalId = (int) (session()->get('sucursal_id') ?? 0);
+        if ($sucursalId <= 0) {
+            return $this->response->setStatusCode(422)->setJSON([
+                'success' => false,
+                'error'   => 'Selecciona un establecimiento.',
+            ]);
+        }
+
+        $servicio = new XetuxApiService();
+        $lista    = $servicio->mesasDisponibles($sucursalId);
+
+        if ($lista === [] && $servicio->obtenerUltimoError()) {
+            return $this->response->setStatusCode(502)->setJSON([
+                'success' => false,
+                'error'   => $servicio->obtenerUltimoError(),
+            ]);
+        }
+
+        return $this->response->setJSON(['success' => true, 'items' => $lista]);
+    }
+
+    /**
+     * Crea orden en Xetux (SENTAR), guarda orderId/suborderId y aplica prepago si aplica.
+     */
+    public function sentarXetux()
+    {
+        $json = $this->request->getJSON(true) ?? [];
+        $codigo = trim((string) ($json['reserva_codigo'] ?? ''));
+        $waiterId = (int) ($json['waiter_id'] ?? 0);
+        $spaceId = (int) ($json['space_id'] ?? 0);
+
+        if ($codigo === '' || $waiterId <= 0 || $spaceId <= 0) {
+            return $this->response->setStatusCode(422)->setJSON([
+                'success' => false,
+                'error'   => 'Selecciona mesero y mesa antes de sentar.',
+            ]);
+        }
+
+        $sucursalId = (int) (session()->get('sucursal_id') ?? 0);
+        if ($sucursalId <= 0) {
+            return $this->response->setStatusCode(422)->setJSON([
+                'success' => false,
+                'error'   => 'Selecciona un establecimiento.',
+            ]);
+        }
+
+        $ordenModel = model(ReservaXetuxOrdenModel::class);
+        if ($ordenModel->activaPorCodigo($codigo, $sucursalId)) {
+            return $this->response->setStatusCode(409)->setJSON([
+                'success' => false,
+                'error'   => 'Esta reserva ya tiene una orden activa en Xetux.',
+            ]);
+        }
+
+        $fecha = trim((string) ($json['fecha'] ?? date('Y-m-d')));
+        $reserva = (new ReservasApiService())->buscarEnListadoActivo($codigo, $sucursalId, $fecha);
+        if (! $reserva) {
+            $reserva = (new ReservasApiService())->obtenerPorCodigo($codigo, $sucursalId);
+        }
+        if (! $reserva) {
+            return $this->response->setStatusCode(404)->setJSON([
+                'success' => false,
+                'error'   => 'Reserva no encontrada para enviar a Xetux.',
+            ]);
+        }
+
+        $xetux = new XetuxApiService();
+        $cfg   = $xetux->configuracion($sucursalId);
+        if ($cfg === null) {
+            return $this->response->setStatusCode(422)->setJSON([
+                'success' => false,
+                'error'   => $xetux->obtenerUltimoError(),
+            ]);
+        }
+
+        [$firstName, $lastName] = XetuxApiService::partirNombre((string) ($reserva['nombre'] ?? ''));
+        $pax = (int) ($reserva['pax'] ?? 1);
+        if ($pax < 1) {
+            $pax = 1;
+        }
+
+        $payloadCreate = [
+            'stationCode'      => $cfg['station_code'],
+            'reference'        => $codigo,
+            'numberOfDiners'   => $pax,
+            'spaceId'          => $spaceId,
+            'openOrderUserId'  => $waiterId,
+            'client'           => [
+                'firstName' => $firstName,
+                'lastName'  => $lastName,
+                'email'     => $codigo,
+                'phone'     => (string) ($reserva['telefono'] ?? ''),
+            ],
+        ];
+
+        $respCreate = $xetux->crearOrden($sucursalId, $payloadCreate);
+        if ($respCreate === null) {
+            return $this->response->setStatusCode(502)->setJSON([
+                'success' => false,
+                'error'   => $xetux->obtenerUltimoError() ?? 'Xetux no creó la orden.',
+            ]);
+        }
+
+        $orderId = $this->extraerEnteroRespuesta($respCreate, ['orderId', 'order_id', 'OrderId']);
+        $suborderId = $this->extraerEnteroRespuesta($respCreate, ['suborderId', 'suborder_id', 'SuborderId']);
+        if ($orderId === null || $suborderId === null) {
+            $anidado = is_array($respCreate['data'] ?? null) ? $respCreate['data'] : $respCreate;
+            $orderId ??= $this->extraerEnteroRespuesta($anidado, ['orderId', 'order_id']);
+            $suborderId ??= $this->extraerEnteroRespuesta($anidado, ['suborderId', 'suborder_id']);
+        }
+
+        if ($orderId === null || $suborderId === null) {
+            return $this->response->setStatusCode(502)->setJSON([
+                'success' => false,
+                'error'   => 'Xetux no devolvió orderId/suborderId.',
+                'raw'     => $respCreate,
+            ]);
+        }
+
+        $ordenModel->insert([
+            'reserva_codigo'        => $codigo,
+            'sucursal_id'           => $sucursalId,
+            'order_id'              => $orderId,
+            'suborder_id'           => $suborderId,
+            'waiter_id'             => $waiterId,
+            'space_id'              => $spaceId,
+            'estatus'               => 'activa',
+            'payload_create_json'   => json_encode($payloadCreate, JSON_UNESCAPED_UNICODE),
+            'payload_response_json' => json_encode($respCreate, JSON_UNESCAPED_UNICODE),
+        ]);
+
+        $prepago = (float) ($reserva['prepago'] ?? 0);
+        $pagoOk  = true;
+        $pagoError = null;
+        if ($prepago > 0) {
+            if ($cfg['payform_id'] === null) {
+                $pagoOk = false;
+                $pagoError = 'Hay prepago pero la sucursal no tiene payform ID configurado.';
+            } else {
+                $refStripe = trim((string) ($json['stripe_reference'] ?? $reserva['stripe_reference'] ?? $codigo));
+                $payloadPago = [
+                    'suborderId' => $suborderId,
+                    'orderId'    => $orderId,
+                    'total'      => $prepago,
+                    'payments'   => [[
+                        'payformId'         => $cfg['payform_id'],
+                        'payformName'       => 'PREPAGO',
+                        'referenceNumber'   => $refStripe,
+                        'amount'            => $prepago,
+                        'tip'               => 0,
+                        'paymentDatetime'   => date('c'),
+                    ]],
+                ];
+                if ($xetux->agregarPago($sucursalId, $payloadPago) === null) {
+                    $pagoOk = false;
+                    $pagoError = $xetux->obtenerUltimoError();
+                }
+            }
+        }
+
+        // Estado local: sentados
+        $asignacionModel = model(ReservaAsignacionModel::class);
+        $asignacion = $asignacionModel->porCodigo($codigo);
+        if ($asignacion) {
+            $asignacionModel->update($asignacion['id'], [
+                'estado_mesa' => 'ocupada',
+                'seated_at'   => date('Y-m-d H:i:s'),
+            ]);
+        }
+
+        (new ReservaActividadService())->registrar(
+            $codigo,
+            'sentar',
+            "sentó en Xetux (orden {$orderId}, suborden {$suborderId})",
+            [
+                'order_id'    => $orderId,
+                'suborder_id' => $suborderId,
+                'waiter_id'   => $waiterId,
+                'space_id'    => $spaceId,
+                'xetux'       => true,
+            ],
+            $sucursalId
+        );
+
+        $orden = $ordenModel->activaPorCodigo($codigo, $sucursalId);
+
+        return $this->response->setJSON([
+            'success'        => true,
+            'xetux_orden'    => $orden,
+            'prepago_enviado'=> $prepago > 0 && $pagoOk,
+            'prepago_warning'=> $pagoError,
+            'asignacion'     => $this->enriquecerAsignacion($asignacion ? $asignacionModel->find($asignacion['id']) : null),
+        ]);
+    }
+
+    /** Cancela orden Xetux localmente y libera la reserva para reutilizar. */
+    public function cancelarXetux()
+    {
+        $json = $this->request->getJSON(true) ?? [];
+        $codigo = trim((string) ($json['reserva_codigo'] ?? ''));
+        $sucursalId = (int) (session()->get('sucursal_id') ?? 0);
+
+        if ($codigo === '' || $sucursalId <= 0) {
+            return $this->response->setStatusCode(422)->setJSON([
+                'success' => false,
+                'error'   => 'Datos incompletos.',
+            ]);
+        }
+
+        $ordenModel = model(ReservaXetuxOrdenModel::class);
+        $orden = $ordenModel->activaPorCodigo($codigo, $sucursalId);
+        if (! $orden) {
+            return $this->response->setStatusCode(404)->setJSON([
+                'success' => false,
+                'error'   => 'No hay orden Xetux activa para cancelar.',
+            ]);
+        }
+
+        $ordenModel->update($orden['id'], ['estatus' => 'cancelada']);
+
+        $asignacionModel = model(ReservaAsignacionModel::class);
+        $asignacion = $asignacionModel->porCodigo($codigo);
+        if ($asignacion) {
+            $asignacionModel->update($asignacion['id'], [
+                'estado_mesa'  => 'liberada',
+                'liberated_at' => date('Y-m-d H:i:s'),
+            ]);
+        }
+
+        (new ReservaActividadService())->registrar(
+            $codigo,
+            'liberar',
+            'canceló la orden Xetux y liberó la reserva',
+            ['xetux_cancel' => true, 'order_id' => $orden['order_id'] ?? null],
+            $sucursalId
+        );
+
+        return $this->response->setJSON([
+            'success'    => true,
+            'asignacion' => $this->enriquecerAsignacion($asignacion ? $asignacionModel->find($asignacion['id']) : null),
+        ]);
+    }
+
+    /** Consulta totales/productos en Xetux antes del cierre (paso final pendiente de URL destino). */
+    public function cerrarCuentaXetux()
+    {
+        $json = $this->request->getJSON(true) ?? [];
+        $codigo = trim((string) ($json['reserva_codigo'] ?? ''));
+        $sucursalId = (int) (session()->get('sucursal_id') ?? 0);
+
+        if ($codigo === '' || $sucursalId <= 0) {
+            return $this->response->setStatusCode(422)->setJSON([
+                'success' => false,
+                'error'   => 'Datos incompletos.',
+            ]);
+        }
+
+        $orden = model(ReservaXetuxOrdenModel::class)->activaPorCodigo($codigo, $sucursalId);
+        if (! $orden || empty($orden['suborder_id'])) {
+            return $this->response->setStatusCode(404)->setJSON([
+                'success' => false,
+                'error'   => 'No hay suborden activa para cerrar cuenta.',
+            ]);
+        }
+
+        $xetux = new XetuxApiService();
+        $info = $xetux->infoOrden($sucursalId, (int) $orden['suborder_id'], true);
+        if ($info === null) {
+            return $this->response->setStatusCode(502)->setJSON([
+                'success' => false,
+                'error'   => $xetux->obtenerUltimoError(),
+            ]);
+        }
+
+        model(ReservaXetuxOrdenModel::class)->update($orden['id'], ['estatus' => 'cerrada']);
+
+        (new ReservaActividadService())->registrar(
+            $codigo,
+            'otro',
+            'consultó cierre de cuenta en Xetux (order/info)',
+            ['suborder_id' => $orden['suborder_id']],
+            $sucursalId
+        );
+
+        return $this->response->setJSON([
+            'success'     => true,
+            'order_info'  => $info,
+            'xetux_orden' => model(ReservaXetuxOrdenModel::class)->find($orden['id']),
+        ]);
+    }
+
+    /**
+     * @param list<string> $claves
+     */
+    private function extraerEnteroRespuesta(array $data, array $claves): ?int
+    {
+        foreach ($claves as $clave) {
+            if (isset($data[$clave]) && is_numeric($data[$clave])) {
+                return (int) $data[$clave];
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * @param list<array<string, mixed>|string> $tags
+     */
+    private function nombresTags(array $tags): string
+    {
         $nombres = [];
         foreach ($tags as $t) {
             if (is_array($t) && ! empty($t['nombre'])) {
@@ -611,18 +1000,8 @@ class ReservasController extends BaseController
                 $nombres[] = $t;
             }
         }
-        $listaTags = $nombres === [] ? 'sin tags' : implode(', ', $nombres);
-        (new ReservaActividadService())->registrar(
-            $codigo,
-            'tags',
-            'actualizó los tags de la reserva: ' . $listaTags,
-            ['tags' => $tags]
-        );
 
-        return $this->response->setJSON([
-            'success' => true,
-            'cliente' => $clienteGuardado,
-        ]);
+        return $nombres === [] ? 'sin tags' : implode(', ', $nombres);
     }
 
     /**

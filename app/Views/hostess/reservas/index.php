@@ -131,18 +131,52 @@
             <ul class="hostess-llegadas-list" id="detalleLlegadas"></ul>
         </div>
 
-        <!-- Módulo tags: clic abre modal (flujo SevenRooms); va antes de Pagos -->
-        <button type="button" class="hostess-tags-module" id="btnAbrirTags" aria-label="Editar tags de la reserva">
+        <!-- Tags de reserva (esta visita) -->
+        <button type="button" class="hostess-tags-module" id="btnAbrirTagsReserva" aria-label="Editar tags de la reserva">
             <div class="hostess-tags-module-head">
                 <span class="hostess-tags-module-icon" aria-hidden="true">
                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/><line x1="7" y1="7" x2="7.01" y2="7"/></svg>
                 </span>
                 <span class="hostess-tags-module-title">Reservation Tags</span>
             </div>
-            <div class="hostess-tags-module-pills" id="detalleTagsSeleccionados">
-                <span class="hostess-tags-empty">Toca para agregar tags</span>
+            <div class="hostess-tags-module-pills" id="detalleTagsReserva">
+                <span class="hostess-tags-empty">Toca para agregar tags de reserva</span>
             </div>
         </button>
+
+        <!-- Tags de cliente (perfil por email) -->
+        <button type="button" class="hostess-tags-module" id="btnAbrirTagsCliente" aria-label="Editar tags del cliente">
+            <div class="hostess-tags-module-head">
+                <span class="hostess-tags-module-icon" aria-hidden="true">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+                </span>
+                <span class="hostess-tags-module-title">Client Tags</span>
+            </div>
+            <div class="hostess-tags-module-pills" id="detalleTagsCliente">
+                <span class="hostess-tags-empty">Toca para agregar tags de cliente</span>
+            </div>
+        </button>
+
+        <div class="hostess-xetux-block" id="detalleXetuxBlock">
+            <div class="form-group mb-2">
+                <label for="selectMeseroXetux">Mesero</label>
+                <select id="selectMeseroXetux" class="form-control hostess-xetux-select" disabled>
+                    <option value="">—</option>
+                </select>
+            </div>
+            <div class="form-group mb-3">
+                <label for="selectMesaXetux">Mesa</label>
+                <select id="selectMesaXetux" class="form-control hostess-xetux-select" disabled>
+                    <option value="">—</option>
+                </select>
+            </div>
+            <button type="button" class="btn btn-primary btn-block mb-2" id="btnSentarXetux">SENTAR</button>
+            <div id="detalleXetuxPostSentar" hidden>
+                <button type="button" class="btn btn-outline-danger btn-block mb-2" id="btnCancelarXetux">CANCELAR</button>
+                <button type="button" class="btn btn-secondary btn-block" id="btnCerrarCuentaXetux">CERRAR CUENTA</button>
+            </div>
+            <p class="text-muted small mb-0" id="detalleXetuxMeta" hidden></p>
+        </div>
 
         <div class="hostess-finance" id="detalleFinance" hidden>
             <label>Pagos</label>
@@ -170,8 +204,48 @@
     </div>
 </div>
 
-<!-- Modal Reservation Tags (categorías) -->
-<div class="modal fade" id="modalReservationTags" tabindex="-1" role="dialog" aria-hidden="true">
+<?php
+/** Catálogo de tags en modal hostess */
+$renderTagsCatalog = static function (array $categorias, string $opcionClass, string $buscarId, string $catalogId, string $vacioMsg): void {
+    ?>
+    <input type="search" id="<?= esc($buscarId) ?>" class="form-control hostess-tags-search mb-3"
+           placeholder="Buscar tags…" autocomplete="off">
+    <div class="hostess-tags-catalog" id="<?= esc($catalogId) ?>">
+        <?php foreach ($categorias as $cat): ?>
+        <div class="hostess-tags-cat" data-cat="<?= esc($cat['nombre']) ?>">
+            <button type="button" class="hostess-tags-cat-toggle" aria-expanded="true">
+                <span><?= esc($cat['nombre']) ?></span>
+                <span class="hostess-tags-cat-chevron" aria-hidden="true">▾</span>
+            </button>
+            <div class="hostess-tags-cat-body">
+                <?php foreach ($cat['tags'] as $t): ?>
+                <?php
+                $bg = $t['color'] ?: '#007AFF';
+                $fg = \App\Models\TagModel::colorTexto($bg);
+                ?>
+                <button type="button"
+                        class="tag-pill hostess-tag-option <?= esc($opcionClass) ?>"
+                        data-tag-id="<?= (int) $t['id'] ?>"
+                        data-tag='<?= esc(json_encode($t), 'attr') ?>'
+                        data-nombre="<?= esc(mb_strtolower($t['nombre'])) ?>"
+                        style="background-color: <?= esc($bg) ?>; color: <?= esc($fg) ?>;">
+                    <span><?= esc($t['nombre']) ?></span>
+                    <span class="hostess-tag-check" aria-hidden="true"></span>
+                </button>
+                <?php endforeach; ?>
+            </div>
+        </div>
+        <?php endforeach; ?>
+        <?php if ($categorias === []): ?>
+        <p class="text-muted mb-0"><?= esc($vacioMsg) ?></p>
+        <?php endif; ?>
+    </div>
+    <?php
+};
+?>
+
+<!-- Modal tags de reserva -->
+<div class="modal fade" id="modalTagsReserva" tabindex="-1" role="dialog" aria-hidden="true">
     <div class="modal-dialog modal-dialog-scrollable modal-dialog-centered" role="document">
         <div class="modal-content app-modal-content hostess-tags-modal">
             <div class="modal-header app-modal-header">
@@ -181,42 +255,44 @@
                 </button>
             </div>
             <div class="modal-body app-modal-body">
-                <div class="hostess-tags-selected" id="modalTagsSelected"></div>
-                <input type="search" id="inputBuscarTags" class="form-control hostess-tags-search mb-3"
-                       placeholder="Buscar tags…" autocomplete="off">
-                <div class="hostess-tags-catalog" id="modalTagsCatalog">
-                    <?php foreach (($tagCategorias ?? []) as $cat): ?>
-                    <div class="hostess-tags-cat" data-cat="<?= esc($cat['nombre']) ?>">
-                        <button type="button" class="hostess-tags-cat-toggle" aria-expanded="true">
-                            <span><?= esc($cat['nombre']) ?></span>
-                            <span class="hostess-tags-cat-chevron" aria-hidden="true">▾</span>
-                        </button>
-                        <div class="hostess-tags-cat-body">
-                            <?php foreach ($cat['tags'] as $t): ?>
-                            <?php
-                            $bg = $t['color'] ?: '#007AFF';
-                            $fg = \App\Models\TagModel::colorTexto($bg);
-                            ?>
-                            <button type="button"
-                                    class="tag-pill hostess-tag-option"
-                                    data-tag-id="<?= (int) $t['id'] ?>"
-                                    data-tag='<?= esc(json_encode($t), 'attr') ?>'
-                                    data-nombre="<?= esc(mb_strtolower($t['nombre'])) ?>"
-                                    style="background-color: <?= esc($bg) ?>; color: <?= esc($fg) ?>;">
-                                <span><?= esc($t['nombre']) ?></span>
-                                <span class="hostess-tag-check" aria-hidden="true"></span>
-                            </button>
-                            <?php endforeach; ?>
-                        </div>
-                    </div>
-                    <?php endforeach; ?>
-                    <?php if (empty($tagCategorias)): ?>
-                    <p class="text-muted mb-0">No hay tags activos. Configúralos en Configuraciones → Tags.</p>
-                    <?php endif; ?>
-                </div>
+                <div class="hostess-tags-selected" id="modalTagsReservaSelected"></div>
+                <?php $renderTagsCatalog(
+                    $tagCategoriasReserva ?? [],
+                    'hostess-tag-option-reserva',
+                    'inputBuscarTagsReserva',
+                    'modalTagsReservaCatalog',
+                    'No hay tags de reserva. Configúralos en Configuraciones → Tags (tipo reserva).'
+                ); ?>
             </div>
             <div class="modal-footer border-0 pt-0">
-                <button type="button" class="btn btn-primary btn-block" id="btnGuardarTags">Guardar</button>
+                <button type="button" class="btn btn-primary btn-block" id="btnGuardarTagsReserva">Guardar</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal tags de cliente -->
+<div class="modal fade" id="modalTagsCliente" tabindex="-1" role="dialog" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-scrollable modal-dialog-centered" role="document">
+        <div class="modal-content app-modal-content hostess-tags-modal">
+            <div class="modal-header app-modal-header">
+                <h5 class="modal-title">Client Tags</h5>
+                <button type="button" class="close app-modal-close" data-dismiss="modal" aria-label="Cerrar">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body app-modal-body">
+                <div class="hostess-tags-selected" id="modalTagsClienteSelected"></div>
+                <?php $renderTagsCatalog(
+                    $tagCategoriasCliente ?? [],
+                    'hostess-tag-option-cliente',
+                    'inputBuscarTagsCliente',
+                    'modalTagsClienteCatalog',
+                    'No hay tags de cliente. Configúralos en Configuraciones → Tags (tipo cliente).'
+                ); ?>
+            </div>
+            <div class="modal-footer border-0 pt-0">
+                <button type="button" class="btn btn-primary btn-block" id="btnGuardarTagsCliente">Guardar</button>
             </div>
         </div>
     </div>
@@ -262,6 +338,11 @@
         tagsUrl: '<?= base_url('hostess/reservas/tags') ?>',
         llegadaUrl: '<?= base_url('hostess/reservas/llegada') ?>',
         sentarUrl: '<?= base_url('hostess/reservas/sentar') ?>',
+        xetuxMeserosUrl: '<?= base_url('hostess/reservas/xetux/meseros') ?>',
+        xetuxMesasUrl: '<?= base_url('hostess/reservas/xetux/mesas') ?>',
+        xetuxSentarUrl: '<?= base_url('hostess/reservas/xetux/sentar') ?>',
+        xetuxCancelarUrl: '<?= base_url('hostess/reservas/xetux/cancelar') ?>',
+        xetuxCerrarUrl: '<?= base_url('hostess/reservas/xetux/cerrar-cuenta') ?>',
         liberarUrl: '<?= base_url('hostess/reservas/liberar') ?>',
         actividadUrl: '<?= base_url('hostess/reservas/actividad') ?>',
         apiPaises: '<?= base_url('hostess/reservas/api/paises') ?>',

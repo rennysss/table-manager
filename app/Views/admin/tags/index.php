@@ -1,7 +1,21 @@
 <?= $this->extend('layouts/main') ?>
 
 <?= $this->section('content') ?>
-<?php use App\Models\TagCategoriaModel; use App\Models\TagModel; ?>
+<?php use App\Models\TagCategoriaModel; use App\Models\TagModel;
+
+$porDominio = ['reserva' => [], 'cliente' => []];
+foreach ($categorias as $cat) {
+    if (($cat['estatus'] ?? '') === 'inactivo') {
+        continue;
+    }
+    $dom = ($cat['dominio'] ?? 'reserva') === 'cliente' ? 'cliente' : 'reserva';
+    $porDominio[$dom][] = $cat;
+}
+$titulosDominio = [
+    'reserva' => 'Tags de reserva',
+    'cliente' => 'Tags de cliente',
+];
+?>
 <div class="container-fluid py-4 tags-admin">
     <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap tags-admin-header">
         <h1 class="h4 mb-0"><?= esc($titulo) ?></h1>
@@ -10,14 +24,17 @@
                 data-title="Nueva categoría">+ Categoría</button>
     </div>
 
-    <?php if ($categorias === []): ?>
-    <div class="text-muted py-5 text-center">
-        No hay categorías. Crea una para empezar a agregar tags.
+    <?php foreach ($titulosDominio as $dominio => $tituloSeccion): ?>
+    <div class="mb-2 mt-4">
+        <h2 class="h5 text-muted"><?= esc($tituloSeccion) ?></h2>
+    </div>
+    <?php if ($porDominio[$dominio] === []): ?>
+    <div class="text-muted py-3">
+        No hay categorías de <?= esc(strtolower($tituloSeccion)) ?>. Crea una categoría con tipo «<?= $dominio === 'cliente' ? 'Tag de cliente' : 'Tag de reserva' ?>».
     </div>
     <?php endif; ?>
 
-    <?php foreach ($categorias as $cat): ?>
-    <?php if (($cat['estatus'] ?? '') === 'inactivo') continue; ?>
+    <?php foreach ($porDominio[$dominio] as $cat): ?>
     <section class="tags-category">
         <div class="tags-category-head">
             <div>
@@ -52,6 +69,7 @@
                     aria-label="Agregar tag">+</button>
         </div>
     </section>
+    <?php endforeach; ?>
     <?php endforeach; ?>
 </div>
 

@@ -12,7 +12,8 @@ class SucursalModel extends Model
     protected $returnType       = 'array';
     protected $useSoftDeletes   = true;
     protected $allowedFields    = [
-        'nombre', 'venue_id', 'xetux_id', 'reservas_api_key', 'marca_id', 'pais_id', 'estado_region_id', 'estado', 'ciudad', 'estatus', 'imagen_png',
+        'nombre', 'venue_id', 'xetux_id', 'xetux_base_url', 'xetux_api_key', 'xetux_station_code', 'xetux_payform_id',
+        'reservas_api_key', 'marca_id', 'pais_id', 'estado_region_id', 'estado', 'ciudad', 'estatus', 'imagen_png',
     ];
     protected $useTimestamps = true;
     protected $deletedField  = 'deleted_at';

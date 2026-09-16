@@ -363,9 +363,13 @@ class ReservasApiService
             'producto_nombre' => (string) ($fila['producto_nombre'] ?? ''),
             'balance'         => $balance,
             'total'           => $total,
-            'prepago'         => $prepago,
-            'moneda'          => $moneda,
-            'tarjeta'         => $tarjeta,
+            'prepago'           => $prepago,
+            'moneda'            => $moneda,
+            'tarjeta'           => $tarjeta,
+            'stripe_reference'  => $this->aTextoNoVacio(
+                $fila['stripe_reference'] ?? $fila['stripe_id'] ?? $fila['payment_intent']
+                ?? $fila['referencia_pago'] ?? $fila['referencia_stripe'] ?? null
+            ),
         ];
     }
 

@@ -119,6 +119,11 @@ $routes->group('', ['filter' => 'auth'], static function ($routes) {
         $routes->post('reservas/tags', 'Hostess\ReservasController::agregarTags');
         $routes->post('reservas/llegada', 'Hostess\ReservasController::registrarLlegada');
         $routes->post('reservas/sentar', 'Hostess\ReservasController::sentar');
+        $routes->get('reservas/xetux/meseros', 'Hostess\ReservasController::xetuxMeseros');
+        $routes->get('reservas/xetux/mesas', 'Hostess\ReservasController::xetuxMesas');
+        $routes->post('reservas/xetux/sentar', 'Hostess\ReservasController::sentarXetux');
+        $routes->post('reservas/xetux/cancelar', 'Hostess\ReservasController::cancelarXetux');
+        $routes->post('reservas/xetux/cerrar-cuenta', 'Hostess\ReservasController::cerrarCuentaXetux');
         $routes->post('reservas/liberar', 'Hostess\ReservasController::liberar');
         $routes->get('plano', 'Hostess\ReservasController::plano');
     });

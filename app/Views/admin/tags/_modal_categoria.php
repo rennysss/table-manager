@@ -20,6 +20,13 @@ $action = $esEdicion
                 <option value="local" <?= ($categoria['alcance'] ?? '') === 'local' ? 'selected' : '' ?>>Local</option>
             </select>
         </div>
+        <div class="form-group col-md-4">
+            <label for="catDominio">Tipo de tag</label>
+            <select id="catDominio" name="dominio" class="form-control">
+                <option value="reserva" <?= ($categoria['dominio'] ?? 'reserva') === 'reserva' ? 'selected' : '' ?>>Tag de reserva</option>
+                <option value="cliente" <?= ($categoria['dominio'] ?? '') === 'cliente' ? 'selected' : '' ?>>Tag de cliente</option>
+            </select>
+        </div>
         <div class="form-group col-md-6">
             <div class="custom-control custom-checkbox">
                 <input type="checkbox" class="custom-control-input" id="catReserva" name="mostrar_en_reserva" value="1"

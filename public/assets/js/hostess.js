@@ -6,8 +6,12 @@ var HostessApp = (function () {
 
     var config = {};
     var reservaSeleccionada = null;
-    var tagsSeleccionados = [];
-    var tagsBorrador = [];
+    var tagsReservaSeleccionados = [];
+    var tagsClienteSeleccionados = [];
+    var tagsReservaBorrador = [];
+    var tagsClienteBorrador = [];
+    var xetuxOrdenActiva = null;
+    var xetuxCatalogoCargado = false;
     var tablaReservas = null;
     var cacheReservas = {};
     var cacheAsignaciones = {};
@@ -136,18 +140,27 @@ var HostessApp = (function () {
             }
         });
 
-        $('#btnAbrirTags').on('click', abrirModalTags);
+        $('#btnAbrirTagsReserva').on('click', abrirModalTagsReserva);
+        $('#btnAbrirTagsCliente').on('click', abrirModalTagsCliente);
 
-        $(document).on('click', '.hostess-tag-option', function () {
-            toggleTagBorrador(JSON.parse($(this).attr('data-tag')));
+        $(document).on('click', '.hostess-tag-option-reserva', function () {
+            toggleTagBorrador(JSON.parse($(this).attr('data-tag')), 'reserva');
+        });
+        $(document).on('click', '.hostess-tag-option-cliente', function () {
+            toggleTagBorrador(JSON.parse($(this).attr('data-tag')), 'cliente');
         });
 
         $(document).on('click', '.hostess-tag-selected-x', function (e) {
             e.preventDefault();
             e.stopPropagation();
             var id = parseInt($(this).data('tag-id'), 10);
-            tagsBorrador = tagsBorrador.filter(function (t) { return parseInt(t.id, 10) !== id; });
-            sincronizarModalTags();
+            var modo = $(this).data('modo') || 'reserva';
+            if (modo === 'cliente') {
+                tagsClienteBorrador = tagsClienteBorrador.filter(function (t) { return parseInt(t.id, 10) !== id; });
+            } else {
+                tagsReservaBorrador = tagsReservaBorrador.filter(function (t) { return parseInt(t.id, 10) !== id; });
+            }
+            sincronizarModalTags(modo);
         });
 
         $(document).on('click', '.hostess-tags-cat-toggle', function () {
@@ -157,19 +170,35 @@ var HostessApp = (function () {
             $(this).attr('aria-expanded', abierto ? 'true' : 'false');
         });
 
-        $('#inputBuscarTags').on('input', function () {
-            filtrarCatalogoTags($(this).val());
+        $('#inputBuscarTagsReserva').on('input', function () {
+            filtrarCatalogoTags($(this).val(), '#modalTagsReservaCatalog');
+        });
+        $('#inputBuscarTagsCliente').on('input', function () {
+            filtrarCatalogoTags($(this).val(), '#modalTagsClienteCatalog');
         });
 
-        $('#btnGuardarTags').on('click', function () {
-            tagsSeleccionados = tagsBorrador.slice();
-            renderTagsDetalle(tagsSeleccionados);
-            guardarTags();
-            $('#modalReservationTags').modal('hide');
+        $('#btnGuardarTagsReserva').on('click', function () {
+            tagsReservaSeleccionados = tagsReservaBorrador.slice();
+            renderTagsEnContenedor('#detalleTagsReserva', tagsReservaSeleccionados, 'Toca para agregar tags de reserva');
+            guardarTags('reserva');
+            $('#modalTagsReserva').modal('hide');
             if (reservaSeleccionada) {
                 setTimeout(function () { cargarActividad(reservaSeleccionada.codigo); }, 300);
             }
         });
+        $('#btnGuardarTagsCliente').on('click', function () {
+            tagsClienteSeleccionados = tagsClienteBorrador.slice();
+            renderTagsEnContenedor('#detalleTagsCliente', tagsClienteSeleccionados, 'Toca para agregar tags de cliente');
+            guardarTags('cliente');
+            $('#modalTagsCliente').modal('hide');
+            if (reservaSeleccionada) {
+                setTimeout(function () { cargarActividad(reservaSeleccionada.codigo); }, 300);
+            }
+        });
+
+        $('#btnSentarXetux').on('click', sentarEnXetux);
+        $('#btnCancelarXetux').on('click', cancelarXetux);
+        $('#btnCerrarCuentaXetux').on('click', cerrarCuentaXetux);
 
         $('#btnAbrirPlano').on('click', function (e) {
             e.preventDefault();
@@ -376,6 +405,7 @@ var HostessApp = (function () {
         if (reservaLocal) {
             reservaSeleccionada = reservaLocal;
             mostrarDetalle(reservaLocal, cacheAsignaciones[identificador] || null);
+            refrescarXetuxOrden(identificador);
             return;
         }
 
@@ -398,12 +428,12 @@ var HostessApp = (function () {
                 return;
             }
             reservaSeleccionada = data.reserva;
-            mostrarDetalle(data.reserva, data.asignacion, data.actividad || null);
+            mostrarDetalle(data.reserva, data.asignacion, data.actividad || null, data.xetux_orden || null);
         })
         .catch(function () { alert('Error al cargar reserva'); });
     }
 
-    function mostrarDetalle(reserva, asignacion, actividadPrecargada) {
+    function mostrarDetalle(reserva, asignacion, actividadPrecargada, xetuxOrden) {
         reservaSeleccionada = reserva;
         if (asignacion) {
             cacheAsignaciones[reserva.codigo] = asignacion;
@@ -438,13 +468,22 @@ var HostessApp = (function () {
         $('.hostess-row').removeClass('selected');
         $('[data-codigo="' + reserva.codigo + '"]').addClass('selected');
 
-        // Tags de esta reserva o del perfil por email (cliente recurrente)
-        var tagsParaMostrar = tagsDesdeAsignacion(asignacion);
-        if (tagsParaMostrar === null) {
-            tagsParaMostrar = Array.isArray(reserva.cliente_tags) ? reserva.cliente_tags : [];
+        var tagsReserva = tagsDesdeAsignacion(asignacion);
+        if (tagsReserva === null) {
+            tagsReserva = [];
         }
-        tagsSeleccionados = normalizarListaTags(tagsParaMostrar);
-        renderTagsDetalle(tagsSeleccionados);
+        tagsReservaSeleccionados = normalizarListaTags(tagsReserva);
+        tagsClienteSeleccionados = normalizarListaTags(
+            Array.isArray(reserva.cliente_tags) ? reserva.cliente_tags : []
+        );
+        renderTagsEnContenedor('#detalleTagsReserva', tagsReservaSeleccionados, 'Toca para agregar tags de reserva');
+        renderTagsEnContenedor('#detalleTagsCliente', tagsClienteSeleccionados, 'Toca para agregar tags de cliente');
+
+        xetuxOrdenActiva = xetuxOrden || null;
+        aplicarEstadoXetux();
+        if (!xetuxCatalogoCargado) {
+            cargarCatalogosXetux();
+        }
 
         document.getElementById('panelDetalle').hidden = false;
         if (Array.isArray(actividadPrecargada)) {
@@ -452,6 +491,24 @@ var HostessApp = (function () {
         } else {
             cargarActividad(reserva.codigo);
         }
+    }
+
+    function refrescarXetuxOrden(codigo) {
+        var url = config.detalleUrl + '/' + encodeURIComponent(codigo) + '/detalle';
+        if (config.sucursalId) {
+            url += '?sucursal_id=' + encodeURIComponent(config.sucursalId);
+        }
+        if (config.fecha) {
+            url += (url.indexOf('?') >= 0 ? '&' : '?') + 'fecha=' + encodeURIComponent(config.fecha);
+        }
+        fetch(url, { headers: { 'Accept': 'application/json' } })
+            .then(function (r) { return r.json(); })
+            .then(function (data) {
+                if (!data || data.error) return;
+                xetuxOrdenActiva = data.xetux_orden || null;
+                aplicarEstadoXetux();
+            })
+            .catch(function () { /* ignore */ });
     }
 
     function cargarActividad(codigo) {
@@ -552,10 +609,10 @@ var HostessApp = (function () {
         }).filter(function (t) { return t && t.nombre; });
     }
 
-    function renderTagsDetalle(tags) {
-        var $box = $('#detalleTagsSeleccionados').empty();
+    function renderTagsEnContenedor(selector, tags, vacioTexto) {
+        var $box = $(selector).empty();
         if (!tags || !tags.length) {
-            $box.append('<span class="hostess-tags-empty">Toca para agregar tags</span>');
+            $box.append('<span class="hostess-tags-empty">' + vacioTexto + '</span>');
             return;
         }
         tags.forEach(function (t) {
@@ -579,32 +636,52 @@ var HostessApp = (function () {
         return luma < 0.55 ? '#FFFFFF' : '#111111';
     }
 
-    function abrirModalTags() {
+    function abrirModalTagsReserva() {
         if (!reservaSeleccionada) return;
-        tagsBorrador = tagsSeleccionados.slice();
-        $('#inputBuscarTags').val('');
-        filtrarCatalogoTags('');
-        sincronizarModalTags();
-        $('#modalReservationTags').modal('show');
+        tagsReservaBorrador = tagsReservaSeleccionados.slice();
+        $('#inputBuscarTagsReserva').val('');
+        filtrarCatalogoTags('', '#modalTagsReservaCatalog');
+        sincronizarModalTags('reserva');
+        $('#modalTagsReserva').modal('show');
     }
 
-    function toggleTagBorrador(tag) {
+    function abrirModalTagsCliente() {
+        if (!reservaSeleccionada) return;
+        tagsClienteBorrador = tagsClienteSeleccionados.slice();
+        $('#inputBuscarTagsCliente').val('');
+        filtrarCatalogoTags('', '#modalTagsClienteCatalog');
+        sincronizarModalTags('cliente');
+        $('#modalTagsCliente').modal('show');
+    }
+
+    function toggleTagBorrador(tag, modo) {
+        var lista = modo === 'cliente' ? tagsClienteBorrador : tagsReservaBorrador;
         var id = parseInt(tag.id, 10);
         var idx = -1;
-        tagsBorrador.forEach(function (t, i) {
+        lista.forEach(function (t, i) {
             if (parseInt(t.id, 10) === id || t.nombre === tag.nombre) idx = i;
         });
         if (idx >= 0) {
-            tagsBorrador.splice(idx, 1);
+            lista.splice(idx, 1);
         } else {
-            tagsBorrador.push(tag);
+            lista.push(tag);
         }
-        sincronizarModalTags();
+        if (modo === 'cliente') {
+            tagsClienteBorrador = lista;
+        } else {
+            tagsReservaBorrador = lista;
+        }
+        sincronizarModalTags(modo);
     }
 
-    function sincronizarModalTags() {
-        var $sel = $('#modalTagsSelected').empty();
-        tagsBorrador.forEach(function (t) {
+    function sincronizarModalTags(modo) {
+        var borrador = modo === 'cliente' ? tagsClienteBorrador : tagsReservaBorrador;
+        var $sel = modo === 'cliente' ? $('#modalTagsClienteSelected') : $('#modalTagsReservaSelected');
+        var opcionClass = modo === 'cliente' ? '.hostess-tag-option-cliente' : '.hostess-tag-option-reserva';
+        var $catalog = modo === 'cliente' ? $('#modalTagsClienteCatalog') : $('#modalTagsReservaCatalog');
+
+        $sel.empty();
+        borrador.forEach(function (t) {
             var bg = t.color || '#007AFF';
             var fg = colorTextoTag(bg);
             var $pill = $('<span class="tag-pill hostess-tag-selected"></span>')
@@ -613,22 +690,23 @@ var HostessApp = (function () {
             $pill.append(
                 $('<button type="button" class="hostess-tag-selected-x" aria-label="Quitar tag">&times;</button>')
                     .attr('data-tag-id', t.id)
+                    .attr('data-modo', modo)
             );
             $sel.append($pill);
         });
 
-        $('.hostess-tag-option').each(function () {
+        $catalog.find(opcionClass).each(function () {
             var tag = JSON.parse($(this).attr('data-tag'));
-            var on = tagsBorrador.some(function (t) {
+            var on = borrador.some(function (t) {
                 return parseInt(t.id, 10) === parseInt(tag.id, 10) || t.nombre === tag.nombre;
             });
             $(this).toggleClass('is-on', on);
         });
     }
 
-    function filtrarCatalogoTags(q) {
+    function filtrarCatalogoTags(q, catalogSelector) {
         q = String(q || '').trim().toLowerCase();
-        $('.hostess-tags-cat').each(function () {
+        $(catalogSelector).find('.hostess-tags-cat').each(function () {
             var $cat = $(this);
             var visibles = 0;
             $cat.find('.hostess-tag-option').each(function () {
@@ -640,6 +718,156 @@ var HostessApp = (function () {
             $cat.toggle(visibles > 0 || !q);
             if (q) $cat.removeClass('is-collapsed');
         });
+    }
+
+    function cargarCatalogosXetux() {
+        if (!config.xetuxMeserosUrl || !config.xetuxMesasUrl) return;
+
+        fetch(config.xetuxMeserosUrl, { headers: { 'Accept': 'application/json' }, credentials: 'same-origin' })
+            .then(function (r) { return r.json(); })
+            .then(function (data) {
+                var $sel = $('#selectMeseroXetux').empty().append('<option value="">— Seleccionar —</option>');
+                if (data.success && data.items) {
+                    data.items.forEach(function (it) {
+                        $sel.append($('<option></option>').val(it.id).text(it.label));
+                    });
+                }
+                $sel.prop('disabled', false);
+            })
+            .catch(function () {
+                $('#selectMeseroXetux').prop('disabled', false);
+            });
+
+        fetch(config.xetuxMesasUrl, { headers: { 'Accept': 'application/json' }, credentials: 'same-origin' })
+            .then(function (r) { return r.json(); })
+            .then(function (data) {
+                var $sel = $('#selectMesaXetux').empty().append('<option value="">— Seleccionar —</option>');
+                if (data.success && data.items) {
+                    data.items.forEach(function (it) {
+                        $sel.append($('<option></option>').val(it.id).text(it.label));
+                    });
+                }
+                $sel.prop('disabled', false);
+            })
+            .catch(function () {
+                $('#selectMesaXetux').prop('disabled', false);
+            });
+
+        xetuxCatalogoCargado = true;
+    }
+
+    function aplicarEstadoXetux() {
+        var activa = xetuxOrdenActiva && xetuxOrdenActiva.estatus === 'activa';
+        $('#btnSentarXetux').prop('hidden', !!activa);
+        $('#detalleXetuxPostSentar').prop('hidden', !activa);
+        $('#selectMeseroXetux, #selectMesaXetux').prop('disabled', !!activa);
+
+        if (activa) {
+            var meta = 'Orden Xetux: ' + (xetuxOrdenActiva.order_id || '—') +
+                ' · Suborden: ' + (xetuxOrdenActiva.suborder_id || '—');
+            $('#detalleXetuxMeta').text(meta).removeAttr('hidden');
+            if (xetuxOrdenActiva.waiter_id) {
+                $('#selectMeseroXetux').val(String(xetuxOrdenActiva.waiter_id));
+            }
+            if (xetuxOrdenActiva.space_id) {
+                $('#selectMesaXetux').val(String(xetuxOrdenActiva.space_id));
+            }
+        } else {
+            $('#detalleXetuxMeta').attr('hidden', true).text('');
+        }
+    }
+
+    function sentarEnXetux() {
+        if (!reservaSeleccionada || !config.xetuxSentarUrl) return;
+        var waiterId = parseInt($('#selectMeseroXetux').val(), 10);
+        var spaceId = parseInt($('#selectMesaXetux').val(), 10);
+        if (!waiterId || !spaceId) {
+            alert('Selecciona mesero y mesa.');
+            return;
+        }
+        var body = {
+            reserva_codigo: reservaSeleccionada.codigo,
+            waiter_id: waiterId,
+            space_id: spaceId,
+            fecha: config.fecha || '',
+            stripe_reference: reservaSeleccionada.stripe_reference || ''
+        };
+        fetch(config.xetuxSentarUrl, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Accept': 'application/json',
+                [window.APP.csrfHeader]: window.APP.csrfTokenActual()
+            },
+            credentials: 'same-origin',
+            body: JSON.stringify(body)
+        })
+            .then(function (res) {
+                return res.json().then(function (data) {
+                    return { ok: res.ok, data: data };
+                });
+            })
+            .then(function (result) {
+                if (!result.ok || !result.data || !result.data.success) {
+                    alert((result.data && result.data.error) || 'No se pudo sentar en Xetux.');
+                    return;
+                }
+                if (result.data.prepago_warning) {
+                    alert('Orden creada, pero prepago: ' + result.data.prepago_warning);
+                }
+                xetuxOrdenActiva = result.data.xetux_orden || null;
+                aplicarEstadoXetux();
+                if (result.data.asignacion && reservaSeleccionada) {
+                    cacheAsignaciones[reservaSeleccionada.codigo] = result.data.asignacion;
+                    mostrarDetalle(reservaSeleccionada, result.data.asignacion, null, xetuxOrdenActiva);
+                }
+                cargarActividad(reservaSeleccionada.codigo);
+            })
+            .catch(function () {
+                alert('Error de conexión con Xetux.');
+            });
+    }
+
+    function cancelarXetux() {
+        if (!reservaSeleccionada || !config.xetuxCancelarUrl) return;
+        if (!confirm('¿Cancelar la orden en Xetux y liberar la reserva?')) return;
+        postCheckin(config.xetuxCancelarUrl, { reserva_codigo: reservaSeleccionada.codigo }, function () {
+            xetuxOrdenActiva = null;
+            aplicarEstadoXetux();
+        });
+    }
+
+    function cerrarCuentaXetux() {
+        if (!reservaSeleccionada || !config.xetuxCerrarUrl) return;
+        fetch(config.xetuxCerrarUrl, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Accept': 'application/json',
+                [window.APP.csrfHeader]: window.APP.csrfTokenActual()
+            },
+            credentials: 'same-origin',
+            body: JSON.stringify({ reserva_codigo: reservaSeleccionada.codigo })
+        })
+            .then(function (res) {
+                return res.json().then(function (data) {
+                    return { ok: res.ok, data: data };
+                });
+            })
+            .then(function (result) {
+                if (!result.ok || !result.data || !result.data.success) {
+                    alert((result.data && result.data.error) || 'No se pudo consultar el cierre.');
+                    return;
+                }
+                xetuxOrdenActiva = result.data.xetux_orden || null;
+                aplicarEstadoXetux();
+                console.info('Xetux order/info', result.data.order_info);
+                alert('Totales obtenidos de Xetux. El envío al destino final se configurará en el siguiente paso.');
+                cargarActividad(reservaSeleccionada.codigo);
+            })
+            .catch(function () {
+                alert('Error de conexión.');
+            });
     }
 
     function renderFinance(reserva) {
@@ -799,15 +1027,18 @@ var HostessApp = (function () {
         reservaSeleccionada = null;
     }
 
-    function guardarTags() {
+    function guardarTags(modo) {
         if (!reservaSeleccionada) return;
 
-        reservaSeleccionada.cliente_tags = tagsSeleccionados;
-        if (cacheReservas[reservaSeleccionada.codigo]) {
-            cacheReservas[reservaSeleccionada.codigo].cliente_tags = tagsSeleccionados;
-        }
-        if (cacheAsignaciones[reservaSeleccionada.codigo]) {
-            cacheAsignaciones[reservaSeleccionada.codigo].tags_json = JSON.stringify(tagsSeleccionados);
+        if (modo === 'cliente') {
+            reservaSeleccionada.cliente_tags = tagsClienteSeleccionados;
+            if (cacheReservas[reservaSeleccionada.codigo]) {
+                cacheReservas[reservaSeleccionada.codigo].cliente_tags = tagsClienteSeleccionados;
+            }
+        } else {
+            if (cacheAsignaciones[reservaSeleccionada.codigo]) {
+                cacheAsignaciones[reservaSeleccionada.codigo].tags_json = JSON.stringify(tagsReservaSeleccionados);
+            }
         }
 
         fetch(config.tagsUrl, {
@@ -820,10 +1051,12 @@ var HostessApp = (function () {
             credentials: 'same-origin',
             body: JSON.stringify({
                 reserva_codigo: reservaSeleccionada.codigo,
+                fecha: config.fecha || '',
                 email: reservaSeleccionada.email || '',
                 cliente_nombre: reservaSeleccionada.nombre || '',
                 telefono: reservaSeleccionada.telefono || '',
-                tags: tagsSeleccionados
+                tags_cliente: modo === 'cliente' ? tagsClienteSeleccionados : undefined,
+                tags_reserva: modo === 'reserva' ? tagsReservaSeleccionados : undefined
             })
         }).catch(function () {});
     }
