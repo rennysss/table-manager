@@ -1,0 +1,18 @@
+---
+description: Tras cambios de código en este repo, hacer commit y deploy a producción sin que el usuario lo repita.
+alwaysApply: true
+---
+
+# Commit y deploy obligatorio
+
+Cuando modifiques código en este proyecto (no solo consultas o revisiones):
+
+1. **Commit** en `main` con mensaje en español de México y emoji de tipo (feat ✨, fix 🐛, chore 🔧, etc.).
+2. **Push** a `origin/main`.
+3. **Deploy** a Lightsail:
+   - `rsync` a `ubuntu@54.185.184.136:~/tablemanager/` excluyendo `.env`, `writable/`, `vendor/`, `docker/`, `.git`
+   - Corregir en servidor `RewriteBase /` en `public/.htaccess` y `.htaccess` si quedó `/1R_tables/public/`
+   - Si hay migraciones nuevas: `docker exec tablemanager php spark migrate --all`
+4. Confirmar al usuario: hash del commit, que el deploy terminó y comprobación rápida (p. ej. HTTP 200 en `/login`).
+
+No omitas commit/deploy salvo que el usuario diga explícitamente que solo quiere cambios locales o un borrador.
