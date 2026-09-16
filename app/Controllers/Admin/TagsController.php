@@ -155,6 +155,20 @@ class TagsController extends BaseController
         return $this->respuestaGuardado(true, null, 'Tag actualizado.');
     }
 
+    /** Desactiva un tag (no borrado físico; conserva historial en asignaciones). */
+    public function eliminar(int $id)
+    {
+        $tag = $this->model->find($id);
+
+        if (! $tag) {
+            return $this->respuestaEliminacion(false, 'Tag no encontrado.', 404);
+        }
+
+        $this->model->update($id, ['estatus' => 'inactivo']);
+
+        return $this->respuestaEliminacion(true, 'Tag eliminado correctamente.');
+    }
+
     public function guardarCategoria()
     {
         $rules = [
@@ -211,6 +225,40 @@ class TagsController extends BaseController
         ]);
 
         return $this->respuestaGuardado(true, null, 'Categoría actualizada.');
+    }
+
+    /** Desactiva la categoría y todos sus tags. */
+    public function eliminarCategoria(int $id)
+    {
+        $categoria = $this->categorias->find($id);
+
+        if (! $categoria) {
+            return $this->respuestaEliminacion(false, 'Categoría no encontrada.', 404);
+        }
+
+        $this->model->where('categoria_id', $id)->set(['estatus' => 'inactivo'])->update();
+        $this->categorias->update($id, ['estatus' => 'inactivo']);
+
+        return $this->respuestaEliminacion(true, 'Categoría eliminada correctamente.');
+    }
+
+    private function respuestaEliminacion(bool $ok, string $message, int $errorStatus = 422)
+    {
+        if (! $this->request->isAJAX()) {
+            return redirect()->to('/admin/tags')->with($ok ? 'success' : 'errors', $message);
+        }
+
+        if (! $ok) {
+            return $this->response->setStatusCode($errorStatus)->setJSON([
+                'success' => false,
+                'message' => $message,
+            ]);
+        }
+
+        return $this->response->setJSON([
+            'success' => true,
+            'message' => $message,
+        ]);
     }
 
     private function respuestaGuardado(bool $ok, ?array $errors = null, ?string $message = null)

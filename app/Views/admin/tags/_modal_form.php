@@ -42,8 +42,20 @@ $color = $tag['color'] ?? '#64D2FF';
         </div>
     </div>
     <div class="app-modal-errors alert alert-danger d-none mb-0" role="alert"></div>
-    <div class="app-modal-form-footer">
-        <button type="button" class="btn btn-secondary mr-2" data-dismiss="modal">Cancelar</button>
-        <button type="submit" class="btn btn-primary">Guardar</button>
+    <div class="app-modal-form-footer d-flex justify-content-between align-items-center flex-wrap w-100">
+        <div class="mb-2 mb-md-0">
+            <?php if ($esEdicion): ?>
+            <button type="button"
+                    class="btn btn-outline-danger btn-eliminar-tag"
+                    data-url="<?= base_url("admin/tags/{$tag['id']}/eliminar") ?>"
+                    data-nombre="<?= esc($tag['nombre']) ?>">
+                Eliminar tag
+            </button>
+            <?php endif; ?>
+        </div>
+        <div>
+            <button type="button" class="btn btn-secondary mr-2" data-dismiss="modal">Cancelar</button>
+            <button type="submit" class="btn btn-primary">Guardar</button>
+        </div>
     </div>
 </form>

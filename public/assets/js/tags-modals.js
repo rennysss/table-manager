@@ -9,10 +9,42 @@
     var $title = $('#appModalTitle');
 
     function csrfHeaders() {
+        var token = typeof window.APP.csrfTokenActual === 'function'
+            ? window.APP.csrfTokenActual()
+            : window.APP.csrfToken;
+
         return {
             'X-Requested-With': 'XMLHttpRequest',
-            [window.APP.csrfHeader]: window.APP.csrfToken
+            [window.APP.csrfHeader]: token
         };
+    }
+
+    function postEliminar(url, nombre, etiqueta) {
+        if (!window.confirm('¿Eliminar ' + etiqueta + ' «' + nombre + '»? Dejará de aparecer en nuevas reservas.')) {
+            return;
+        }
+
+        fetch(url, {
+            method: 'POST',
+            headers: csrfHeaders(),
+            body: new FormData()
+        })
+            .then(function (res) {
+                return res.json().then(function (data) {
+                    return { ok: res.ok, data: data };
+                });
+            })
+            .then(function (result) {
+                if (!result.ok || !result.data.success) {
+                    window.alert((result.data && result.data.message) || 'No se pudo eliminar.');
+                    return;
+                }
+                $modal.modal('hide');
+                window.location.reload();
+            })
+            .catch(function () {
+                window.alert('Error de conexión.');
+            });
     }
 
     function showErrors($form, errors) {
@@ -81,6 +113,14 @@
     $(document).on('submit', '#appModalBody form[data-ajax-form="tag"], #appModalBody form[data-ajax-form="tag-categoria"]', function (e) {
         e.preventDefault();
         submitAjaxForm($(this));
+    });
+
+    $(document).on('click', '.btn-eliminar-tag', function () {
+        postEliminar($(this).data('url'), $(this).data('nombre') || 'tag', 'el tag');
+    });
+
+    $(document).on('click', '.btn-eliminar-tag-categoria', function () {
+        postEliminar($(this).data('url'), $(this).data('nombre') || 'categoría', 'la categoría');
     });
 
     $modal.on('hidden.bs.modal', function () {
