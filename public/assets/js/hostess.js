@@ -200,17 +200,6 @@ var HostessApp = (function () {
         $('#btnCancelarXetux').on('click', cancelarXetux);
         $('#btnCerrarCuentaXetux').on('click', cerrarCuentaXetux);
 
-        $('#btnAbrirPlano').on('click', function (e) {
-            e.preventDefault();
-            if (!reservaSeleccionada) return;
-            var url = urlPlano()
-                + '&reserva=' + encodeURIComponent(reservaSeleccionada.codigo);
-            if (reservaSeleccionada.nombre) {
-                url += '&nombre=' + encodeURIComponent(reservaSeleccionada.nombre);
-            }
-            window.location.href = url;
-        });
-
         initFiltrosUbicacion();
         abrirReservaDesdeQuery();
     }
@@ -959,8 +948,6 @@ var HostessApp = (function () {
         var liberada = asignacion && asignacion.estado_mesa === 'liberada';
         // Agregar pax funciona con o sin mesa (check-in / Arrived)
         $('#btnAgregarPax').prop('disabled', !!liberada);
-        var tieneMesa = !!(asignacion && asignacion.mesa_id);
-        $('#btnAbrirPlano').text(tieneMesa ? 'Abrir plano / cambiar mesa' : 'Abrir plano y asignar mesa');
     }
 
     function postCheckin(url, body, onSuccess) {
@@ -1204,14 +1191,6 @@ var HostessApp = (function () {
             q += '&sucursal_id=' + encodeURIComponent(sucursalId);
         }
         return config.detalleUrl + q;
-    }
-
-    function urlPlano() {
-        var q = '?fecha=' + encodeURIComponent(config.fecha);
-        if (config.sucursalId) {
-            q += '&sucursal_id=' + encodeURIComponent(config.sucursalId);
-        }
-        return config.planoUrl + q;
     }
 
     function sumarDias(fechaStr, delta) {

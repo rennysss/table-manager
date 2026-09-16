@@ -192,7 +192,6 @@
             </div>
         </div>
 
-        <a href="#" id="btnAbrirPlano" class="btn btn-secondary btn-block mt-3">Abrir plano y asignar mesa</a>
     </div>
 
     <aside class="hostess-activity" aria-label="Actividad de la reserva">
@@ -333,7 +332,6 @@ $renderTagsCatalog = static function (array $categorias, string $opcionClass, st
         sucursalPaisId: <?= (int) ($sucursalActiva['pais_id'] ?? 0) ?>,
         sucursalCiudad: <?= json_encode($sucursalActiva['ciudad'] ?? '', JSON_UNESCAPED_UNICODE) ?>,
         detalleUrl: '<?= base_url('hostess/reservas') ?>',
-        planoUrl: '<?= base_url('hostess/plano') ?>',
         asignarUrl: '<?= base_url('hostess/reservas/asignar') ?>',
         tagsUrl: '<?= base_url('hostess/reservas/tags') ?>',
         llegadaUrl: '<?= base_url('hostess/reservas/llegada') ?>',
