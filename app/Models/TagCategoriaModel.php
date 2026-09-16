@@ -34,7 +34,10 @@ class TagCategoriaModel extends Model
             ->findAll();
 
         $tagModel = model(TagModel::class);
-        $tags = $tagModel->orderBy('orden', 'ASC')->orderBy('nombre', 'ASC')->findAll();
+        $tags = $tagModel->where('estatus', 'activo')
+            ->orderBy('orden', 'ASC')
+            ->orderBy('nombre', 'ASC')
+            ->findAll();
 
         $porCategoria = [];
         foreach ($tags as $tag) {

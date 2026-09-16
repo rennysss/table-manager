@@ -7,19 +7,40 @@
     var $modal = $('#appModal');
     var $body = $('#appModalBody');
     var $title = $('#appModalTitle');
+    var CSRF_FIELD = 'csrf_test_name';
+
+    function csrfToken() {
+        if (typeof window.APP.csrfTokenActual === 'function') {
+            return window.APP.csrfTokenActual();
+        }
+        return window.APP.csrfToken;
+    }
 
     function csrfHeaders() {
-        var token = typeof window.APP.csrfTokenActual === 'function'
-            ? window.APP.csrfTokenActual()
-            : window.APP.csrfToken;
-
         return {
             'X-Requested-With': 'XMLHttpRequest',
-            [window.APP.csrfHeader]: token
+            Accept: 'application/json',
+            [window.APP.csrfHeader]: csrfToken()
         };
     }
 
+    function formDataConCsrf() {
+        var fd = new FormData();
+        var $csrf = $body.find('input[name="' + CSRF_FIELD + '"]').first();
+        if ($csrf.length) {
+            fd.append(CSRF_FIELD, $csrf.val());
+        } else {
+            fd.append(CSRF_FIELD, csrfToken());
+        }
+        return fd;
+    }
+
     function postEliminar(url, nombre, etiqueta) {
+        if (!url) {
+            window.alert('No se encontró la URL de eliminación.');
+            return;
+        }
+
         if (!window.confirm('¿Eliminar ' + etiqueta + ' «' + nombre + '»? Dejará de aparecer en nuevas reservas.')) {
             return;
         }
@@ -27,9 +48,14 @@
         fetch(url, {
             method: 'POST',
             headers: csrfHeaders(),
-            body: new FormData()
+            credentials: 'same-origin',
+            body: formDataConCsrf()
         })
             .then(function (res) {
+                var ct = res.headers.get('content-type') || '';
+                if (ct.indexOf('application/json') === -1) {
+                    return { ok: false, data: { message: 'Respuesta inválida del servidor (¿sesión expirada?). Recarga la página.' } };
+                }
                 return res.json().then(function (data) {
                     return { ok: res.ok, data: data };
                 });
@@ -87,6 +113,7 @@
         fetch($form.attr('action'), {
             method: 'POST',
             headers: csrfHeaders(),
+            credentials: 'same-origin',
             body: new FormData($form[0])
         })
             .then(function (res) { return res.json().then(function (data) { return { ok: res.ok, data: data }; }); })
@@ -115,11 +142,15 @@
         submitAjaxForm($(this));
     });
 
-    $(document).on('click', '.btn-eliminar-tag', function () {
+    $(document).on('click', '.btn-eliminar-tag', function (e) {
+        e.preventDefault();
+        e.stopPropagation();
         postEliminar($(this).data('url'), $(this).data('nombre') || 'tag', 'el tag');
     });
 
-    $(document).on('click', '.btn-eliminar-tag-categoria', function () {
+    $(document).on('click', '.btn-eliminar-tag-categoria', function (e) {
+        e.preventDefault();
+        e.stopPropagation();
         postEliminar($(this).data('url'), $(this).data('nombre') || 'categoría', 'la categoría');
     });
 

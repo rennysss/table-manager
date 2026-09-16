@@ -91,5 +91,5 @@ $titulosDominio = [
 <?= $this->endSection() ?>
 
 <?= $this->section('scripts') ?>
-<script src="<?= base_url('assets/js/tags-modals.js') ?>"></script>
+<script src="<?= base_url('assets/js/tags-modals.js') ?>?v=<?= @filemtime(FCPATH . 'assets/js/tags-modals.js') ?: time() ?>"></script>
 <?= $this->endSection() ?>

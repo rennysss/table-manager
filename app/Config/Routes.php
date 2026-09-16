@@ -35,13 +35,13 @@ $routes->group('', ['filter' => 'auth'], static function ($routes) {
         $routes->get('tags/modal/crear', 'Admin\TagsController::modalCrear');
         $routes->get('tags/(:num)/modal/editar', 'Admin\TagsController::modalEditar/$1');
         $routes->post('tags', 'Admin\TagsController::guardar');
-        $routes->post('tags/(:num)', 'Admin\TagsController::actualizar/$1');
         $routes->post('tags/(:num)/eliminar', 'Admin\TagsController::eliminar/$1');
+        $routes->post('tags/(:num)', 'Admin\TagsController::actualizar/$1');
         $routes->get('tags/categorias/modal/crear', 'Admin\TagsController::modalCategoriaCrear');
         $routes->get('tags/categorias/(:num)/modal/editar', 'Admin\TagsController::modalCategoriaEditar/$1');
         $routes->post('tags/categorias', 'Admin\TagsController::guardarCategoria');
-        $routes->post('tags/categorias/(:num)', 'Admin\TagsController::actualizarCategoria/$1');
         $routes->post('tags/categorias/(:num)/eliminar', 'Admin\TagsController::eliminarCategoria/$1');
+        $routes->post('tags/categorias/(:num)', 'Admin\TagsController::actualizarCategoria/$1');
 
         $routes->get('catalogo-geografico', 'Admin\CatalogoGeograficoController::index');
         $routes->get('catalogo-geografico/paises/(:num)/estados', 'Admin\CatalogoGeograficoController::estadosPorPais/$1');

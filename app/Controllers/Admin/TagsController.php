@@ -164,7 +164,9 @@ class TagsController extends BaseController
             return $this->respuestaEliminacion(false, 'Tag no encontrado.', 404);
         }
 
-        $this->model->update($id, ['estatus' => 'inactivo']);
+        if (! $this->model->update($id, ['estatus' => 'inactivo'])) {
+            return $this->respuestaEliminacion(false, 'No se pudo eliminar el tag.', 500);
+        }
 
         return $this->respuestaEliminacion(true, 'Tag eliminado correctamente.');
     }
@@ -244,7 +246,10 @@ class TagsController extends BaseController
 
     private function respuestaEliminacion(bool $ok, string $message, int $errorStatus = 422)
     {
-        if (! $this->request->isAJAX()) {
+        $quiereJson = $this->request->isAJAX()
+            || str_contains($this->request->getHeaderLine('Accept'), 'application/json');
+
+        if (! $quiereJson) {
             return redirect()->to('/admin/tags')->with($ok ? 'success' : 'errors', $message);
         }
 
