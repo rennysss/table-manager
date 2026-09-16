@@ -80,9 +80,6 @@ class ReservasController extends BaseController
                 $cat['tags'] ?? [],
                 static fn (array $t): bool => ($t['estatus'] ?? '') === 'activo'
             ));
-            if ($activos === []) {
-                continue;
-            }
             $cat['tags'] = $activos;
             $resultado[] = $cat;
         }
@@ -203,8 +200,9 @@ class ReservasController extends BaseController
                 'status_label'   => $enriched['status_label'] ?? 'Asignada',
                 'pax_reservados' => $enriched['pax_reservados'] ?? null,
                 'pax_en_mesa'    => $enriched['pax_en_mesa'] ?? 0,
-                'tags_json'      => $a['tags_json'] ?? '[]',
-                'llegadas'       => $enriched['llegadas'] ?? [],
+                'tags_json'         => $a['tags_json'] ?? '[]',
+                'tags_cliente_json' => $a['tags_cliente_json'] ?? null,
+                'llegadas'          => $enriched['llegadas'] ?? [],
             ];
         }
 
@@ -330,6 +328,15 @@ class ReservasController extends BaseController
         }
         if ($existente === null) {
             $datos['pax_en_mesa'] = 0;
+        }
+
+        if ($email !== '' && ($existente === null || empty($existente['tags_cliente_json']))) {
+            $cliente = model(ClienteModel::class)->porEmail($email);
+            if ($cliente && ! empty($cliente['tags_json'])) {
+                $datos['tags_cliente_json'] = is_string($cliente['tags_json'])
+                    ? $cliente['tags_json']
+                    : json_encode($cliente['tags_json'], JSON_UNESCAPED_UNICODE);
+            }
         }
 
         if ($existente) {
@@ -585,49 +592,71 @@ class ReservasController extends BaseController
             $tagsReserva = $json['tags'];
         }
 
-        $clienteGuardado = false;
-        if ($tagsCliente !== null && $email !== '') {
-            model(ClienteModel::class)->upsertTags($email, $tagsCliente, [
-                'nombre'   => $json['cliente_nombre'] ?? null,
-                'telefono' => $json['telefono'] ?? null,
-            ]);
-            $clienteGuardado = true;
-        }
-
-        $asignacion = model(ReservaAsignacionModel::class)
+        $asignacionModel = model(ReservaAsignacionModel::class);
+        $asignacion = $asignacionModel
             ->where('reserva_codigo', $codigo)
             ->orderBy('created_at', 'DESC')
             ->first();
 
+        $clienteGuardado = false;
         $reservaGuardada = false;
-        if ($tagsReserva !== null && $asignacion) {
-            model(ReservaAsignacionModel::class)->update($asignacion['id'], [
-                'tags_json' => json_encode(array_values($tagsReserva), JSON_UNESCAPED_UNICODE),
-            ]);
+
+        if ($tagsCliente !== null) {
+            $payloadCliente = json_encode(array_values($tagsCliente), JSON_UNESCAPED_UNICODE);
+            if ($asignacion) {
+                $asignacionModel->update($asignacion['id'], ['tags_cliente_json' => $payloadCliente]);
+            } else {
+                $sucursalId = (int) (session()->get('sucursal_id') ?? 0);
+                $fecha = trim((string) ($json['fecha'] ?? date('Y-m-d')));
+                $asignacionModel->insert([
+                    'reserva_codigo'     => $codigo,
+                    'mesa_id'            => null,
+                    'sucursal_id'        => $sucursalId,
+                    'cliente_nombre'     => $json['cliente_nombre'] ?? null,
+                    'fecha'              => $fecha,
+                    'tags_cliente_json'  => $payloadCliente,
+                    'estado_mesa'        => 'reservada',
+                    'asignado_por'       => session()->get('usuario_id'),
+                ]);
+                $asignacion = $asignacionModel->find($asignacionModel->getInsertID());
+            }
+            $reservaGuardada = true;
+
+            if ($email !== '') {
+                model(ClienteModel::class)->upsertTags($email, $tagsCliente, [
+                    'nombre'   => $json['cliente_nombre'] ?? null,
+                    'telefono' => $json['telefono'] ?? null,
+                ]);
+                $clienteGuardado = true;
+            }
+        }
+
+        if ($tagsReserva !== null) {
+            $payloadReserva = json_encode(array_values($tagsReserva), JSON_UNESCAPED_UNICODE);
+            if ($asignacion) {
+                $asignacionModel->update($asignacion['id'], ['tags_json' => $payloadReserva]);
+            } else {
+                $sucursalId = (int) (session()->get('sucursal_id') ?? 0);
+                $fecha = trim((string) ($json['fecha'] ?? date('Y-m-d')));
+                $asignacionModel->insert([
+                    'reserva_codigo' => $codigo,
+                    'mesa_id'        => null,
+                    'sucursal_id'    => $sucursalId,
+                    'cliente_nombre' => $json['cliente_nombre'] ?? null,
+                    'fecha'          => $fecha,
+                    'tags_json'      => $payloadReserva,
+                    'estado_mesa'    => 'reservada',
+                    'asignado_por'   => session()->get('usuario_id'),
+                ]);
+                $asignacion = $asignacionModel->find($asignacionModel->getInsertID());
+            }
             $reservaGuardada = true;
         }
 
-        if ($tagsReserva !== null && ! $asignacion) {
-            // Permite guardar tags de reserva creando asignación mínima
-            $sucursalId = (int) (session()->get('sucursal_id') ?? 0);
-            $fecha = trim((string) ($json['fecha'] ?? date('Y-m-d')));
-            model(ReservaAsignacionModel::class)->insert([
-                'reserva_codigo' => $codigo,
-                'mesa_id'        => null,
-                'sucursal_id'    => $sucursalId,
-                'cliente_nombre' => $json['cliente_nombre'] ?? null,
-                'fecha'          => $fecha,
-                'tags_json'      => json_encode(array_values($tagsReserva), JSON_UNESCAPED_UNICODE),
-                'estado_mesa'    => 'reservada',
-                'asignado_por'   => session()->get('usuario_id'),
-            ]);
-            $reservaGuardada = true;
-        }
-
-        if (! $clienteGuardado && ! $reservaGuardada) {
+        if (! $reservaGuardada) {
             return $this->response->setStatusCode(422)->setJSON([
                 'success' => false,
-                'error'   => 'Indica tags de cliente (con email) o tags de reserva.',
+                'error'   => 'Indica tags de cliente o tags de reserva.',
             ]);
         }
 
@@ -648,10 +677,16 @@ class ReservasController extends BaseController
             ]
         );
 
+        $asignacion = $asignacionModel
+            ->where('reserva_codigo', $codigo)
+            ->orderBy('created_at', 'DESC')
+            ->first();
+
         return $this->response->setJSON([
-            'success' => true,
-            'cliente' => $clienteGuardado,
-            'reserva' => $reservaGuardada,
+            'success'    => true,
+            'cliente'    => $clienteGuardado,
+            'reserva'    => $reservaGuardada,
+            'asignacion' => $this->enriquecerAsignacion($asignacion),
         ]);
     }
 

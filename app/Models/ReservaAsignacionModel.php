@@ -14,7 +14,7 @@ class ReservaAsignacionModel extends Model
         'reserva_codigo', 'mesa_id', 'sucursal_id', 'rp_codigo',
         'cliente_nombre', 'fecha', 'hora', 'pax_reservados', 'pax_en_mesa',
         'estado_mesa', 'arrived_at', 'seated_at', 'liberated_at',
-        'tags_json', 'asignado_por',
+        'tags_json', 'tags_cliente_json', 'asignado_por',
     ];
     protected $useTimestamps = true;
 

@@ -19,14 +19,14 @@ $titulosDominio = [
 <div class="container-fluid py-4 tags-admin">
     <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap tags-admin-header">
         <h1 class="h4 mb-0"><?= esc($titulo) ?></h1>
-        <button type="button" class="btn btn-secondary btn-sm btn-modal-tag-categoria"
-                data-url="<?= base_url('admin/tags/categorias/modal/crear') ?>"
-                data-title="Nueva categoría">+ Categoría</button>
     </div>
 
     <?php foreach ($titulosDominio as $dominio => $tituloSeccion): ?>
-    <div class="mb-2 mt-4">
-        <h2 class="h5 text-muted"><?= esc($tituloSeccion) ?></h2>
+    <div class="mb-2 mt-4 d-flex justify-content-between align-items-center flex-wrap gap-2">
+        <h2 class="h5 text-muted mb-0"><?= esc($tituloSeccion) ?></h2>
+        <button type="button" class="btn btn-secondary btn-sm btn-modal-tag-categoria"
+                data-url="<?= base_url('admin/tags/categorias/modal/crear?dominio=' . $dominio) ?>"
+                data-title="Nueva categoría de <?= $dominio === 'cliente' ? 'cliente' : 'reserva' ?>">+ Categoría</button>
     </div>
     <?php if ($porDominio[$dominio] === []): ?>
     <div class="text-muted py-3">

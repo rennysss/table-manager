@@ -66,7 +66,15 @@ class TagsController extends BaseController
             return redirect()->to('/admin/tags');
         }
 
-        return view('admin/tags/_modal_categoria', ['categoria' => null]);
+        $dominio = (string) ($this->request->getGet('dominio') ?? 'reserva');
+        if (! in_array($dominio, ['cliente', 'reserva'], true)) {
+            $dominio = 'reserva';
+        }
+
+        return view('admin/tags/_modal_categoria', [
+            'categoria'      => null,
+            'dominioDefault' => $dominio,
+        ]);
     }
 
     public function modalCategoriaEditar(int $id)

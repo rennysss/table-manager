@@ -1,5 +1,6 @@
 <?php
 $categoria = $categoria ?? null;
+$dominioDefault = $dominioDefault ?? ($categoria['dominio'] ?? 'reserva');
 $esEdicion = $categoria !== null;
 $action = $esEdicion
     ? base_url("admin/tags/categorias/{$categoria['id']}")
@@ -23,8 +24,8 @@ $action = $esEdicion
         <div class="form-group col-md-4">
             <label for="catDominio">Tipo de tag</label>
             <select id="catDominio" name="dominio" class="form-control">
-                <option value="reserva" <?= ($categoria['dominio'] ?? 'reserva') === 'reserva' ? 'selected' : '' ?>>Tag de reserva</option>
-                <option value="cliente" <?= ($categoria['dominio'] ?? '') === 'cliente' ? 'selected' : '' ?>>Tag de cliente</option>
+                <option value="reserva" <?= $dominioDefault === 'reserva' ? 'selected' : '' ?>>Tag de reserva</option>
+                <option value="cliente" <?= $dominioDefault === 'cliente' ? 'selected' : '' ?>>Tag de cliente</option>
             </select>
         </div>
         <div class="form-group col-md-6">

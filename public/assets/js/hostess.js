@@ -462,9 +462,11 @@ var HostessApp = (function () {
             tagsReserva = [];
         }
         tagsReservaSeleccionados = normalizarListaTags(tagsReserva);
-        tagsClienteSeleccionados = normalizarListaTags(
-            Array.isArray(reserva.cliente_tags) ? reserva.cliente_tags : []
-        );
+        var tagsCliente = tagsClienteDesdeAsignacion(asignacion);
+        if (tagsCliente === null) {
+            tagsCliente = Array.isArray(reserva.cliente_tags) ? reserva.cliente_tags : [];
+        }
+        tagsClienteSeleccionados = normalizarListaTags(tagsCliente);
         renderTagsEnContenedor('#detalleTagsReserva', tagsReservaSeleccionados, 'Toca para agregar tags de reserva');
         renderTagsEnContenedor('#detalleTagsCliente', tagsClienteSeleccionados, 'Toca para agregar tags de cliente');
 
@@ -1009,6 +1011,21 @@ var HostessApp = (function () {
         }
     }
 
+    /** null = usar perfil por email; array = tags de cliente en esta visita. */
+    function tagsClienteDesdeAsignacion(asignacion) {
+        if (!asignacion || asignacion.tags_cliente_json == null || asignacion.tags_cliente_json === '') {
+            return null;
+        }
+        try {
+            var tags = typeof asignacion.tags_cliente_json === 'string'
+                ? JSON.parse(asignacion.tags_cliente_json)
+                : asignacion.tags_cliente_json;
+            return Array.isArray(tags) ? tags : null;
+        } catch (e) {
+            return null;
+        }
+    }
+
     function cerrarDetalle() {
         document.getElementById('panelDetalle').hidden = true;
         reservaSeleccionada = null;
@@ -1022,10 +1039,8 @@ var HostessApp = (function () {
             if (cacheReservas[reservaSeleccionada.codigo]) {
                 cacheReservas[reservaSeleccionada.codigo].cliente_tags = tagsClienteSeleccionados;
             }
-        } else {
-            if (cacheAsignaciones[reservaSeleccionada.codigo]) {
-                cacheAsignaciones[reservaSeleccionada.codigo].tags_json = JSON.stringify(tagsReservaSeleccionados);
-            }
+        } else if (cacheAsignaciones[reservaSeleccionada.codigo]) {
+            cacheAsignaciones[reservaSeleccionada.codigo].tags_json = JSON.stringify(tagsReservaSeleccionados);
         }
 
         fetch(config.tagsUrl, {
@@ -1045,7 +1060,29 @@ var HostessApp = (function () {
                 tags_cliente: modo === 'cliente' ? tagsClienteSeleccionados : undefined,
                 tags_reserva: modo === 'reserva' ? tagsReservaSeleccionados : undefined
             })
-        }).catch(function () {});
+        })
+            .then(function (res) {
+                return res.json().then(function (data) {
+                    return { ok: res.ok, data: data };
+                });
+            })
+            .then(function (result) {
+                if (!result.ok || !result.data || !result.data.success) {
+                    var msg = (result.data && result.data.error) || 'No se pudieron guardar los tags.';
+                    alert(msg);
+                    return;
+                }
+                if (result.data.asignacion) {
+                    cacheAsignaciones[reservaSeleccionada.codigo] = result.data.asignacion;
+                    if (modo === 'cliente') {
+                        cacheAsignaciones[reservaSeleccionada.codigo].tags_cliente_json =
+                            result.data.asignacion.tags_cliente_json;
+                    }
+                }
+            })
+            .catch(function () {
+                alert('Error de conexión al guardar tags.');
+            });
     }
 
     function aplicarFiltros() {
